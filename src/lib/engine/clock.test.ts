@@ -29,8 +29,8 @@ describe('BpmClock', () => {
   it('quantizes a timestamp to the nearest subdivision', () => {
     const clock = new BpmClock(120);
     clock.startTime = 0;
-    expect(clock.quantize(240, '1/4')).toBe(500);
-    expect(clock.quantize(260, '1/4')).toBe(500);
+    expect(clock.quantize(240, '1/4')).toBe(0);   // 240 < 250 midpoint → rounds to 0
+    expect(clock.quantize(260, '1/4')).toBe(500); // 260 > 250 midpoint → rounds to 500
     expect(clock.quantize(100, '1/4')).toBe(0);
   });
 
