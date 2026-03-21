@@ -9,7 +9,9 @@
   const dispatch = createEventDispatcher();
 
   const SOURCES = [
-    { id: 'usgs-earthquakes', name: 'Earthquakes', icon: '🌋' }
+    { id: 'usgs-earthquakes', name: 'Earthquakes', icon: '🌋' },
+    { id: 'iss-position', name: 'ISS Position', icon: '🔭' },
+    { id: 'ebird-activity', name: 'Bird Activity', icon: '🐦' }
   ];
 
   const SOURCE_FIELDS: Record<string, { id: string; name: string }[]> = {
@@ -18,6 +20,17 @@
       { id: 'depth', name: 'Depth' },
       { id: 'latitude', name: 'Latitude' },
       { id: 'longitude', name: 'Longitude' }
+    ],
+    'iss-position': [
+      { id: 'latitude', name: 'Latitude' },
+      { id: 'longitude', name: 'Longitude' },
+      { id: 'altitude', name: 'Altitude' },
+      { id: 'velocity', name: 'Velocity' }
+    ],
+    'ebird-activity': [
+      { id: 'observation-count', name: 'Observation Count' },
+      { id: 'total-individuals', name: 'Total Individuals' },
+      { id: 'species-diversity', name: 'Species Diversity' }
     ]
   };
 
