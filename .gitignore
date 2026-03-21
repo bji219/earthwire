@@ -1,0 +1,26 @@
+# dependencies
+node_modules/
+
+# SvelteKit generated files
+.svelte-kit/
+
+# build output
+build/
+dist/
+.vercel/
+
+# environment variables
+.env
+.env.*
+!.env.example
+
+# editor
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# test coverage
+coverage/
