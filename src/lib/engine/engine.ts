@@ -1,11 +1,15 @@
 import { createNormalizer, type Normalizer } from '../nodes/normalizer.js';
 import { createSmoother, type Smoother } from '../nodes/smoother.js';
+import { createQuantizer, type Quantizer } from '../nodes/quantizer.js';
+import { createThreshold, type Threshold } from '../nodes/threshold.js';
 import type { ChannelConfig, ChannelOutput } from './types.js';
 
 interface ChannelState {
   config: ChannelConfig;
   normalizer: Normalizer;
   smoother: Smoother | null;
+  quantizer: Quantizer | null;
+  threshold: Threshold | null;
 }
 
 export class EarthwireEngine {
@@ -16,9 +20,13 @@ export class EarthwireEngine {
   }
 
   addChannel(config: ChannelConfig): void {
-    const normalizer = createNormalizer(config.normalizer);
-    const smoother = config.smoother ? createSmoother(config.smoother) : null;
-    this.channels.push({ config, normalizer, smoother });
+    this.channels.push({
+      config,
+      normalizer: createNormalizer(config.normalizer),
+      smoother: config.smoother ? createSmoother(config.smoother) : null,
+      quantizer: config.quantizer ? createQuantizer(config.quantizer) : null,
+      threshold: config.threshold ? createThreshold(config.threshold) : null
+    });
   }
 
   removeChannel(index: number): void {
@@ -30,11 +38,20 @@ export class EarthwireEngine {
     if (!channel) {
       return { continuous: 0, trigger: null, note: null };
     }
+
     let value = channel.normalizer.process(rawValue);
+
     if (channel.smoother) {
       value = channel.smoother.process(value);
     }
-    return { continuous: value, trigger: null, note: null };
+
+    const note = channel.quantizer ? channel.quantizer.process(value) : null;
+
+    const trigger = channel.threshold
+      ? channel.threshold.process(value, Date.now())
+      : null;
+
+    return { continuous: value, trigger, note };
   }
 
   getChannelConfig(index: number): ChannelConfig | undefined {

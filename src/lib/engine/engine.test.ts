@@ -65,4 +65,34 @@ describe('EarthwireEngine', () => {
     engine.removeChannel(0);
     expect(engine.channelCount).toBe(0);
   });
+
+  it('processes quantizer in chain', () => {
+    const engine = new EarthwireEngine();
+    engine.addChannel({
+      sourceId: 'test', fieldId: 'value',
+      normalizer: { mode: 'manual', min: 0, max: 127 },
+      smoother: null,
+      quantizer: { root: 60, scale: 'major' },
+      threshold: null,
+      output: { type: 'midi-note', channel: 1 }
+    });
+    const output = engine.processValue(0, 60);
+    expect(output.note).not.toBeNull();
+    expect(Number.isInteger(output.note)).toBe(true);
+  });
+
+  it('processes threshold and emits trigger', () => {
+    const engine = new EarthwireEngine();
+    engine.addChannel({
+      sourceId: 'test', fieldId: 'value',
+      normalizer: { mode: 'manual', min: 0, max: 100 },
+      smoother: null,
+      quantizer: null,
+      threshold: { level: 0.5, direction: 'rising', beatQuantize: null },
+      output: { type: 'midi-trigger', channel: 1, note: 60 }
+    });
+    engine.processValue(0, 30);
+    const output = engine.processValue(0, 80);
+    expect(output.trigger).not.toBeNull();
+  });
 });
