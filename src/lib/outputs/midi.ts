@@ -4,9 +4,9 @@ declare global {
     requestMIDIAccess?: () => Promise<MIDIAccess>;
   }
   interface MIDIAccess {
-    outputs: Map<string, MIDIOutput>;
+    outputs: Map<string, MIDIOutputPort>;
   }
-  interface MIDIOutput {
+  interface MIDIOutputPort {
     send(data: number[], timestamp?: number): void;
   }
 }
@@ -40,7 +40,7 @@ export class MidiOutput {
     }
   }
 
-  getOutputPorts(): MIDIOutput[] {
+  getOutputPorts(): MIDIOutputPort[] {
     if (!this.access) return [];
     return Array.from(this.access.outputs.values());
   }
@@ -63,7 +63,7 @@ export class MidiOutput {
     port.send(midiNoteOffMessage(channel, note));
   }
 
-  private getPort(portId: string): MIDIOutput | undefined {
+  private getPort(portId: string): MIDIOutputPort | undefined {
     if (!this.access) return undefined;
     return this.access.outputs.get(portId);
   }
