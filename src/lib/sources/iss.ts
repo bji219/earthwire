@@ -19,7 +19,7 @@ export function computeIssPosition(tleLine1: string, tleLine2: string, date: Dat
   const satrec = satellite.twoline2satrec(tleLine1, tleLine2);
   const posVel = satellite.propagate(satrec, date);
 
-  if (typeof posVel.position === 'boolean' || typeof posVel.velocity === 'boolean') {
+  if (!posVel || typeof posVel.position === 'boolean' || typeof posVel.velocity === 'boolean') {
     throw new Error('SGP4 propagation failed');
   }
 
