@@ -1,0 +1,26 @@
+{
+  "id": "seismic-filter-sweep",
+  "name": "Seismic Filter Sweep",
+  "specVersion": "0.1.0",
+  "bpm": 120,
+  "channels": [
+    {
+      "sourceId": "usgs-earthquakes",
+      "fieldId": "magnitude",
+      "normalizer": { "mode": "auto" },
+      "smoother": { "amount": 0.3 },
+      "quantizer": null,
+      "threshold": null,
+      "output": { "type": "midi-cc", "channel": 1, "cc": 74 }
+    },
+    {
+      "sourceId": "usgs-earthquakes",
+      "fieldId": "depth",
+      "normalizer": { "mode": "manual", "min": 0, "max": 300 },
+      "smoother": { "amount": 0.5 },
+      "quantizer": null,
+      "threshold": null,
+      "output": { "type": "midi-cc", "channel": 1, "cc": 71 }
+    }
+  ]
+}

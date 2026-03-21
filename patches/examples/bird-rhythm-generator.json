@@ -1,0 +1,26 @@
+{
+  "id": "bird-rhythm-generator",
+  "name": "Bird Rhythm Generator",
+  "specVersion": "0.1.0",
+  "bpm": 110,
+  "channels": [
+    {
+      "sourceId": "ebird-activity",
+      "fieldId": "observation-count",
+      "normalizer": { "mode": "auto" },
+      "smoother": null,
+      "quantizer": null,
+      "threshold": { "level": 0.6, "direction": "rising", "beatQuantize": "1/8" },
+      "output": { "type": "midi-trigger", "channel": 10, "note": 36 }
+    },
+    {
+      "sourceId": "ebird-activity",
+      "fieldId": "species-diversity",
+      "normalizer": { "mode": "auto" },
+      "smoother": { "amount": 0.4 },
+      "quantizer": { "root": 60, "scale": "pentatonic" },
+      "threshold": null,
+      "output": { "type": "midi-note", "channel": 2 }
+    }
+  ]
+}

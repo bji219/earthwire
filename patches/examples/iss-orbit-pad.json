@@ -1,0 +1,35 @@
+{
+  "id": "iss-orbit-pad",
+  "name": "ISS Orbit Pad",
+  "specVersion": "0.1.0",
+  "bpm": 80,
+  "channels": [
+    {
+      "sourceId": "iss-position",
+      "fieldId": "latitude",
+      "normalizer": { "mode": "manual", "min": -90, "max": 90 },
+      "smoother": { "amount": 0.7 },
+      "quantizer": null,
+      "threshold": null,
+      "output": { "type": "midi-cc", "channel": 1, "cc": 74 }
+    },
+    {
+      "sourceId": "iss-position",
+      "fieldId": "longitude",
+      "normalizer": { "mode": "manual", "min": -180, "max": 180 },
+      "smoother": { "amount": 0.7 },
+      "quantizer": { "root": 48, "scale": "minor" },
+      "threshold": null,
+      "output": { "type": "midi-note", "channel": 1 }
+    },
+    {
+      "sourceId": "iss-position",
+      "fieldId": "velocity",
+      "normalizer": { "mode": "manual", "min": 7.5, "max": 7.8 },
+      "smoother": { "amount": 0.9 },
+      "quantizer": null,
+      "threshold": null,
+      "output": { "type": "midi-cc", "channel": 1, "cc": 1 }
+    }
+  ]
+}
