@@ -54,6 +54,23 @@
   function remove() {
     patch.removeChannel(index);
   }
+
+  function handleFieldChange(e: Event) {
+    updateChannel({ fieldId: (e.target as HTMLSelectElement).value });
+  }
+
+  function handleNormModeChange(e: Event) {
+    const mode = (e.target as HTMLSelectElement).value as 'auto' | 'manual';
+    updateChannel({ normalizer: { ...channel.normalizer, mode } });
+  }
+
+  function handleOutputTypeChange(e: Event) {
+    const type = (e.target as HTMLSelectElement).value;
+    if (type === 'midi-cc') updateChannel({ output: { type: 'midi-cc', channel: 1, cc: 1 } });
+    else if (type === 'midi-note') updateChannel({ output: { type: 'midi-note', channel: 1 } });
+    else if (type === 'midi-trigger') updateChannel({ output: { type: 'midi-trigger', channel: 1, note: 60 } });
+    else if (type === 'demo-synth') updateChannel({ output: { type: 'demo-synth', param: 'filter-cutoff' } });
+  }
 </script>
 
 <div class="channel-strip">
@@ -64,7 +81,7 @@
       {/each}
     </select>
 
-    <select value={channel.fieldId} on:change={(e) => updateChannel({ fieldId: (e.target as HTMLSelectElement).value })}>
+    <select value={channel.fieldId} on:change={handleFieldChange}>
       {#each SOURCE_FIELDS[channel.sourceId] ?? [] as field}
         <option value={field.id}>{field.name}</option>
       {/each}
@@ -76,7 +93,7 @@
       Norm
       <select
         value={channel.normalizer.mode}
-        on:change={(e) => updateChannel({ normalizer: { ...channel.normalizer, mode: (e.target as HTMLSelectElement).value as 'auto' | 'manual' } })}
+        on:change={handleNormModeChange}
       >
         <option value="auto">Auto</option>
         <option value="manual">Manual</option>
@@ -99,13 +116,7 @@
   <div class="output-section">
     <select
       value={channel.output.type}
-      on:change={(e) => {
-        const type = (e.target as HTMLSelectElement).value;
-        if (type === 'midi-cc') updateChannel({ output: { type: 'midi-cc', channel: 1, cc: 1 } });
-        else if (type === 'midi-note') updateChannel({ output: { type: 'midi-note', channel: 1 } });
-        else if (type === 'midi-trigger') updateChannel({ output: { type: 'midi-trigger', channel: 1, note: 60 } });
-        else if (type === 'demo-synth') updateChannel({ output: { type: 'demo-synth', param: 'filter-cutoff' } });
-      }}
+      on:change={handleOutputTypeChange}
     >
       <option value="midi-cc">MIDI CC</option>
       <option value="midi-note">MIDI Note</option>
