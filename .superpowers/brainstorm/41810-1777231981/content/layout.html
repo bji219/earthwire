@@ -1,0 +1,97 @@
+<h2>Sample Browser Layout</h2>
+<p class="subtitle">How the search results and kit builder sit together on the page.</p>
+
+<div class="options">
+
+  <div class="option" data-choice="a" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>Split Panel — Browse Left, Kit Right</h3>
+      <p>Search and results on the left. Kit slots (24 pads) on the right. Drag or click "Add" to move samples into the kit. Always visible simultaneously.</p>
+      <div class="mockup" style="margin-top:0.75rem">
+        <div class="mockup-header">Samples</div>
+        <div class="mockup-body" style="display:flex;gap:0;padding:0;min-height:160px">
+          <div style="flex:1.4;padding:0.75rem;border-right:1px solid #ddd">
+            <div style="font-size:0.7rem;font-weight:600;color:#999;margin-bottom:0.5rem;letter-spacing:0.05em">BIRDS · NATURE</div>
+            <div class="mock-input" style="margin-bottom:0.5rem;font-size:0.75rem">🔍 Search bird sounds...</div>
+            <div style="font-size:0.72rem;padding:0.3rem 0.4rem;background:#f0f0ea;border-radius:4px;margin-bottom:0.25rem">🐦 Nightingale — 0:32 ▶</div>
+            <div style="font-size:0.72rem;padding:0.3rem 0.4rem;background:#f0f0ea;border-radius:4px;margin-bottom:0.25rem">🐦 Robin song — 0:18 ▶</div>
+            <div style="font-size:0.72rem;padding:0.3rem 0.4rem;background:#f0f0ea;border-radius:4px">🌊 Ocean waves — 0:45 ▶</div>
+          </div>
+          <div style="flex:1;padding:0.75rem">
+            <div style="font-size:0.7rem;font-weight:600;color:#999;margin-bottom:0.5rem;letter-spacing:0.05em">KIT SLOTS</div>
+            <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:3px">
+              <div style="aspect-ratio:1;background:#4a7c59;border-radius:3px;display:flex;align-items:center;justify-content:center;font-size:0.6rem;color:#fff">🐦</div>
+              <div style="aspect-ratio:1;background:#4a7c59;border-radius:3px;display:flex;align-items:center;justify-content:center;font-size:0.6rem;color:#fff">🌊</div>
+              <div style="aspect-ratio:1;background:#e8e5de;border-radius:3px"></div>
+              <div style="aspect-ratio:1;background:#e8e5de;border-radius:3px"></div>
+              <div style="aspect-ratio:1;background:#e8e5de;border-radius:3px"></div>
+              <div style="aspect-ratio:1;background:#e8e5de;border-radius:3px"></div>
+              <div style="aspect-ratio:1;background:#e8e5de;border-radius:3px"></div>
+              <div style="aspect-ratio:1;background:#e8e5de;border-radius:3px"></div>
+            </div>
+            <div class="mock-button" style="margin-top:0.5rem;font-size:0.7rem;text-align:center">⬇ Export Kit</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="b" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>Full-Width Browser + Floating Kit Tray</h3>
+      <p>Search results take the full width. A collapsible kit tray sits at the bottom (like a DAW timeline). Click to expand and see your 24 slots, export when ready.</p>
+      <div class="mockup" style="margin-top:0.75rem">
+        <div class="mockup-header">Samples</div>
+        <div class="mockup-body" style="padding:0;min-height:160px;display:flex;flex-direction:column">
+          <div style="flex:1;padding:0.75rem">
+            <div style="font-size:0.7rem;font-weight:600;color:#999;margin-bottom:0.5rem;letter-spacing:0.05em">BIRDS · NATURE</div>
+            <div class="mock-input" style="margin-bottom:0.5rem;font-size:0.75rem">🔍 Search...</div>
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:0.4rem">
+              <div style="font-size:0.7rem;padding:0.4rem;background:#f0f0ea;border-radius:4px">🐦 Nightingale<br><span style="color:#999;font-size:0.65rem">0:32 · Xeno-canto</span></div>
+              <div style="font-size:0.7rem;padding:0.4rem;background:#f0f0ea;border-radius:4px">🐦 Robin<br><span style="color:#999;font-size:0.65rem">0:18 · Xeno-canto</span></div>
+              <div style="font-size:0.7rem;padding:0.4rem;background:#f0f0ea;border-radius:4px">🌊 Waves<br><span style="color:#999;font-size:0.65rem">0:45 · Freesound</span></div>
+            </div>
+          </div>
+          <div style="background:#2d3b2d;color:#c8d8c0;padding:0.5rem 0.75rem;display:flex;align-items:center;gap:0.75rem">
+            <span style="font-size:0.7rem;font-weight:600;letter-spacing:0.05em">KIT TRAY</span>
+            <div style="display:flex;gap:3px">
+              <div style="width:18px;height:18px;background:#4a7c59;border-radius:2px"></div>
+              <div style="width:18px;height:18px;background:#4a7c59;border-radius:2px"></div>
+              <div style="width:18px;height:18px;background:#3a3a3a;border-radius:2px"></div>
+              <div style="width:18px;height:18px;background:#3a3a3a;border-radius:2px"></div>
+              <span style="color:#666;font-size:0.7rem;margin-left:0.25rem">+22 empty</span>
+            </div>
+            <div class="mock-button" style="margin-left:auto;font-size:0.65rem;padding:0.2rem 0.5rem">⬇ Export</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="c" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>Two-Step Flow — Browse then Build</h3>
+      <p>Step 1: Search and "favourite" samples. Step 2: Go to Kit Builder page, arrange favourites into 24 slots, export. Clear separation between discovery and assembly.</p>
+      <div class="mockup" style="margin-top:0.75rem">
+        <div class="mockup-header">Samples</div>
+        <div class="mockup-body" style="padding:0.75rem;min-height:100px">
+          <div style="display:flex;gap:0.5rem;margin-bottom:0.5rem">
+            <div class="mock-button" style="font-size:0.7rem;background:#4a7c59;color:#fff;border-color:#4a7c59">① Browse</div>
+            <div style="font-size:0.7rem;padding:0.25rem 0.6rem;border:1px solid #ccc;border-radius:4px;color:#999">② Build Kit</div>
+          </div>
+          <div class="mock-input" style="margin-bottom:0.4rem;font-size:0.75rem">🔍 Search bird sounds...</div>
+          <div style="font-size:0.72rem;padding:0.3rem 0.4rem;background:#f0f0ea;border-radius:4px;margin-bottom:0.25rem;display:flex;justify-content:space-between">
+            <span>🐦 Nightingale — 0:32</span><span style="color:#4a7c59">♥ Save</span>
+          </div>
+          <div style="font-size:0.72rem;padding:0.3rem 0.4rem;background:#f0f0ea;border-radius:4px;display:flex;justify-content:space-between">
+            <span>🐦 Robin song — 0:18</span><span style="color:#4a7c59">♥ Save</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>

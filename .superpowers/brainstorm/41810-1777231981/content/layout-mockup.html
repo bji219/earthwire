@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Phase 2 Layout Mockup</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif; background: #f2f0eb; color: #1a1a1a; min-height: 100vh; }
+
+  .app { display: flex; flex-direction: column; height: 100vh; }
+
+  /* Top nav */
+  .topbar { display: flex; align-items: center; gap: 1.5rem; padding: 0.6rem 1.25rem; background: #f2f0eb; border-bottom: 1px solid #ddd; font-size: 0.78rem; }
+  .topbar-brand { font-weight: 700; letter-spacing: -0.02em; color: #1a1a1a; }
+  .topbar-nav a { color: #666; text-decoration: none; }
+  .topbar-nav a.active { color: #1a1a1a; font-weight: 600; }
+  .topbar-nav { display: flex; gap: 1rem; }
+
+  /* Main split */
+  .main { display: flex; flex: 1; overflow: hidden; }
+
+  /* LEFT: Sample browser */
+  .browser { flex: 1; display: flex; flex-direction: column; border-right: 1px solid #ddd; overflow: hidden; }
+
+  .browser-tabs { display: flex; border-bottom: 1px solid #ddd; }
+  .browser-tab { padding: 0.55rem 1rem; font-size: 0.75rem; font-weight: 500; color: #999; cursor: pointer; border-bottom: 2px solid transparent; }
+  .browser-tab.active { color: #1a1a1a; border-bottom-color: #1a1a1a; }
+
+  .browser-search { padding: 0.65rem 1rem; border-bottom: 1px solid #ddd; display: flex; gap: 0.5rem; align-items: center; }
+  .browser-search input { flex: 1; border: 1px solid #ccc; border-radius: 4px; padding: 0.35rem 0.6rem; font-size: 0.78rem; background: #fff; outline: none; }
+  .browser-search input:focus { border-color: #4a7c59; }
+  .filter-pill { font-size: 0.7rem; padding: 0.25rem 0.55rem; border: 1px solid #ccc; border-radius: 12px; color: #666; cursor: pointer; white-space: nowrap; }
+  .filter-pill.active { border-color: #4a7c59; color: #4a7c59; background: #f0f5f1; }
+
+  .results { flex: 1; overflow-y: auto; }
+
+  .result-item { display: flex; align-items: center; gap: 0.75rem; padding: 0.6rem 1rem; border-bottom: 1px solid #eee; cursor: pointer; transition: background 100ms; }
+  .result-item:hover { background: #eceae4; }
+  .result-icon { font-size: 1.1rem; flex-shrink: 0; width: 1.5rem; text-align: center; }
+  .result-info { flex: 1; min-width: 0; }
+  .result-name { font-size: 0.78rem; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .result-meta { font-size: 0.68rem; color: #999; margin-top: 0.1rem; }
+  .result-dur { font-size: 0.7rem; color: #aaa; font-variant-numeric: tabular-nums; flex-shrink: 0; }
+  .result-play { width: 22px; height: 22px; border-radius: 50%; background: #1a1a1a; color: #fff; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 0.6rem; cursor: pointer; }
+  .result-add { font-size: 0.68rem; padding: 0.2rem 0.5rem; border: 1px solid #ccc; border-radius: 3px; color: #666; cursor: pointer; flex-shrink: 0; white-space: nowrap; }
+  .result-add:hover { border-color: #4a7c59; color: #4a7c59; }
+
+  .section-label { font-size: 0.65rem; font-weight: 600; letter-spacing: 0.08em; color: #aaa; text-transform: uppercase; padding: 0.6rem 1rem 0.3rem; }
+
+  /* RIGHT: Kit builder (TE drum utility style) */
+  .kit { width: 320px; flex-shrink: 0; display: flex; flex-direction: column; background: #f2f0eb; overflow: hidden; }
+
+  .kit-header { padding: 0.6rem 1rem; border-bottom: 1px solid #ddd; display: flex; align-items: center; justify-content: space-between; }
+  .kit-title { font-size: 0.78rem; font-weight: 600; }
+  .kit-name-input { font-size: 0.75rem; border: none; background: transparent; color: #666; text-align: right; outline: none; font-style: italic; }
+  .kit-name-input:focus { color: #1a1a1a; }
+
+  .kit-slots { flex: 1; overflow-y: auto; }
+
+  .slot { display: flex; align-items: center; gap: 0.6rem; padding: 0.38rem 1rem; border-bottom: 1px solid #e8e6e0; min-height: 36px; }
+  .slot:hover { background: #eceae4; }
+  .slot-num { font-size: 0.72rem; color: #bbb; width: 1.2rem; text-align: right; flex-shrink: 0; font-variant-numeric: tabular-nums; }
+  .slot-dot { width: 6px; height: 6px; border-radius: 50%; background: #4a7c59; flex-shrink: 0; }
+  .slot-dot.empty { background: transparent; }
+  .slot-name { font-size: 0.75rem; color: #1a1a1a; flex: 1; }
+  .slot-name.empty { color: #ccc; font-style: italic; }
+  .slot-src { font-size: 0.63rem; color: #aaa; flex-shrink: 0; }
+  .slot-clear { font-size: 0.65rem; color: #ccc; cursor: pointer; flex-shrink: 0; }
+  .slot-clear:hover { color: #c0392b; }
+
+  .kit-footer { padding: 0.75rem 1rem; border-top: 1px solid #ddd; display: flex; align-items: center; justify-content: space-between; }
+  .kit-count { font-size: 0.7rem; color: #aaa; }
+  .export-btn { font-size: 0.75rem; font-weight: 500; color: #1a1a1a; background: none; border: none; cursor: pointer; display: flex; align-items: center; gap: 0.3rem; }
+  .export-btn:hover { opacity: 0.6; }
+  .export-arrow { font-size: 0.9rem; }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <div class="topbar">
+    <span class="topbar-brand">Earthwire</span>
+    <nav class="topbar-nav">
+      <a href="#">Sequencer</a>
+      <a href="#" class="active">Samples</a>
+      <a href="#">Docs</a>
+    </nav>
+  </div>
+
+  <div class="main">
+
+    <!-- LEFT: Browser -->
+    <div class="browser">
+      <div class="browser-tabs">
+        <div class="browser-tab active">🐦 Birds (Xeno-canto)</div>
+        <div class="browser-tab">🌿 Nature (Freesound)</div>
+      </div>
+      <div class="browser-search">
+        <input type="text" placeholder="Search bird recordings..." value="nightingale">
+        <div class="filter-pill active">Quality A</div>
+        <div class="filter-pill">< 30s</div>
+        <div class="filter-pill">Location</div>
+      </div>
+      <div class="results">
+        <div class="section-label">24 results</div>
+
+        <div class="result-item">
+          <div class="result-icon">🐦</div>
+          <div class="result-play">▶</div>
+          <div class="result-info">
+            <div class="result-name">Luscinia megarhynchos · Common Nightingale</div>
+            <div class="result-meta">Italy · Xeno-canto XC123456 · Quality A</div>
+          </div>
+          <div class="result-dur">0:28</div>
+          <div class="result-add">+ Add</div>
+        </div>
+
+        <div class="result-item">
+          <div class="result-icon">🐦</div>
+          <div class="result-play">▶</div>
+          <div class="result-info">
+            <div class="result-name">Luscinia megarhynchos · Night song</div>
+            <div class="result-meta">France · Xeno-canto XC234567 · Quality A</div>
+          </div>
+          <div class="result-dur">0:45</div>
+          <div class="result-add">+ Add</div>
+        </div>
+
+        <div class="result-item">
+          <div class="result-icon">🐦</div>
+          <div class="result-play">▶</div>
+          <div class="result-info">
+            <div class="result-name">Erithacus rubecula · Robin, territorial</div>
+            <div class="result-meta">UK · Xeno-canto XC345678 · Quality B</div>
+          </div>
+          <div class="result-dur">0:18</div>
+          <div class="result-add">+ Add</div>
+        </div>
+
+        <div class="result-item">
+          <div class="result-icon">🐦</div>
+          <div class="result-play">▶</div>
+          <div class="result-info">
+            <div class="result-name">Turdus philomelos · Song Thrush at dawn</div>
+            <div class="result-meta">Germany · Xeno-canto XC456789 · Quality A</div>
+          </div>
+          <div class="result-dur">1:02</div>
+          <div class="result-add">+ Add</div>
+        </div>
+
+        <div class="result-item">
+          <div class="result-icon">🐦</div>
+          <div class="result-play">▶</div>
+          <div class="result-info">
+            <div class="result-name">Sylvia atricapilla · Blackcap, full song</div>
+            <div class="result-meta">Spain · Xeno-canto XC567890 · Quality A</div>
+          </div>
+          <div class="result-dur">0:35</div>
+          <div class="result-add">+ Add</div>
+        </div>
+
+        <div class="result-item">
+          <div class="result-icon">🐦</div>
+          <div class="result-play">▶</div>
+          <div class="result-info">
+            <div class="result-name">Cuculus canorus · Common Cuckoo call</div>
+            <div class="result-meta">Sweden · Xeno-canto XC678901 · Quality A</div>
+          </div>
+          <div class="result-dur">0:12</div>
+          <div class="result-add">+ Add</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT: Kit builder -->
+    <div class="kit">
+      <div class="kit-header">
+        <span class="kit-title">drum kit</span>
+        <input class="kit-name-input" value="dawn chorus" placeholder="kit name...">
+      </div>
+
+      <div class="kit-slots">
+        <div class="slot">
+          <div class="slot-num">1</div>
+          <div class="slot-dot"></div>
+          <div class="slot-name">nightingale song</div>
+          <div class="slot-src">xc</div>
+          <div class="slot-clear">✕</div>
+        </div>
+        <div class="slot">
+          <div class="slot-num">2</div>
+          <div class="slot-dot"></div>
+          <div class="slot-name">robin territorial</div>
+          <div class="slot-src">xc</div>
+          <div class="slot-clear">✕</div>
+        </div>
+        <div class="slot">
+          <div class="slot-num">3</div>
+          <div class="slot-dot"></div>
+          <div class="slot-name">blackcap full song</div>
+          <div class="slot-src">xc</div>
+          <div class="slot-clear">✕</div>
+        </div>
+        <div class="slot">
+          <div class="slot-num">4</div>
+          <div class="slot-dot empty"></div>
+          <div class="slot-name empty">empty</div>
+        </div>
+        <div class="slot">
+          <div class="slot-num">5</div>
+          <div class="slot-dot empty"></div>
+          <div class="slot-name empty">empty</div>
+        </div>
+        <div class="slot">
+          <div class="slot-num">6</div>
+          <div class="slot-dot empty"></div>
+          <div class="slot-name empty">empty</div>
+        </div>
+        <div class="slot">
+          <div class="slot-num">7</div>
+          <div class="slot-dot empty"></div>
+          <div class="slot-name empty">empty</div>
+        </div>
+        <div class="slot">
+          <div class="slot-num">8</div>
+          <div class="slot-dot empty"></div>
+          <div class="slot-name empty">empty</div>
+        </div>
+        <div class="slot">
+          <div class="slot-num">9</div>
+          <div class="slot-dot empty"></div>
+          <div class="slot-name empty">empty</div>
+        </div>
+        <div class="slot">
+          <div class="slot-num">10</div>
+          <div class="slot-dot empty"></div>
+          <div class="slot-name empty">empty</div>
+        </div>
+        <div class="slot">
+          <div class="slot-num">11</div>
+          <div class="slot-dot empty"></div>
+          <div class="slot-name empty">empty</div>
+        </div>
+        <div class="slot">
+          <div class="slot-num">12</div>
+          <div class="slot-dot empty"></div>
+          <div class="slot-name empty">empty</div>
+        </div>
+        <div class="slot">
+          <div class="slot-num">13</div>
+          <div class="slot-dot empty"></div>
+          <div class="slot-name empty">empty</div>
+        </div>
+        <div class="slot">
+          <div class="slot-num">14</div>
+          <div class="slot-dot empty"></div>
+          <div class="slot-name empty">empty</div>
+        </div>
+        <div class="slot">
+          <div class="slot-num">15</div>
+          <div class="slot-dot empty"></div>
+          <div class="slot-name empty">empty</div>
+        </div>
+        <div class="slot">
+          <div class="slot-num">16</div>
+          <div class="slot-dot empty"></div>
+          <div class="slot-name empty">empty</div>
+        </div>
+        <div class="slot">
+          <div class="slot-num">17</div>
+          <div class="slot-dot empty"></div>
+          <div class="slot-name empty">empty</div>
+        </div>
+        <div class="slot">
+          <div class="slot-num">18</div>
+          <div class="slot-dot empty"></div>
+          <div class="slot-name empty">empty</div>
+        </div>
+        <div class="slot">
+          <div class="slot-num">19</div>
+          <div class="slot-dot empty"></div>
+          <div class="slot-name empty">empty</div>
+        </div>
+        <div class="slot">
+          <div class="slot-num">20</div>
+          <div class="slot-dot empty"></div>
+          <div class="slot-name empty">empty</div>
+        </div>
+        <div class="slot">
+          <div class="slot-num">21</div>
+          <div class="slot-dot empty"></div>
+          <div class="slot-name empty">empty</div>
+        </div>
+        <div class="slot">
+          <div class="slot-num">22</div>
+          <div class="slot-dot empty"></div>
+          <div class="slot-name empty">empty</div>
+        </div>
+        <div class="slot">
+          <div class="slot-num">23</div>
+          <div class="slot-dot empty"></div>
+          <div class="slot-name empty">empty</div>
+        </div>
+        <div class="slot">
+          <div class="slot-num">24</div>
+          <div class="slot-dot empty"></div>
+          <div class="slot-name empty">empty</div>
+        </div>
+      </div>
+
+      <div class="kit-footer">
+        <span class="kit-count">3 / 24 slots</span>
+        <button class="export-btn">export kit <span class="export-arrow">→</span></button>
+      </div>
+    </div>
+
+  </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,43 @@
+<h2>How does the OP-1-F drum kit get to the device?</h2>
+<p class="subtitle">The export mechanism determines how complex the kit-building backend needs to be.</p>
+
+<div class="options">
+  <div class="option" data-choice="a" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>Download Ready-to-Copy ZIP</h3>
+      <p>App generates a single <code>.zip</code> containing the AIFF drum kit file(s) in the correct OP-1-F folder structure. User unzips and drags to device via Finder/Explorer.</p>
+      <div style="margin-top:0.75rem;padding:0.6rem 0.75rem;background:var(--bg-card,#f5f5f0);border-radius:6px;font-size:0.82rem;color:var(--text-muted,#666)">
+        <strong>Effort:</strong> Medium — need to generate AIFF with OP-1 APPL metadata<br>
+        <strong>UX:</strong> Simple — works on any computer/browser<br>
+        <strong>Structure:</strong> <code>SYNTHESIZER/preset/drum/my-kit.aif</code>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="b" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>Direct USB Transfer (Web USB)</h3>
+      <p>Browser connects directly to the OP-1-F via Web USB API (Chrome only). Files are written straight to the device filesystem — no manual drag needed.</p>
+      <div style="margin-top:0.75rem;padding:0.6rem 0.75rem;background:var(--bg-card,#f5f5f0);border-radius:6px;font-size:0.82rem;color:var(--text-muted,#666)">
+        <strong>Effort:</strong> High — Web USB is low-level, requires MTP/MSC protocol handling<br>
+        <strong>UX:</strong> Magical when it works, fragile — Chrome only, may need device in disk mode<br>
+        <strong>Risk:</strong> OP-1-F USB protocol not publicly documented
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="c" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>Download Individual AIFF + Instructions</h3>
+      <p>Export each sample as a processed .aif file (trimmed, normalized, correct format). User loads them manually into OP-1-F using the drum utility or directly into device folders.</p>
+      <div style="margin-top:0.75rem;padding:0.6rem 0.75rem;background:var(--bg-card,#f5f5f0);border-radius:6px;font-size:0.82rem;color:var(--text-muted,#666)">
+        <strong>Effort:</strong> Lower — no APPL metadata needed, just clean AIFF files<br>
+        <strong>UX:</strong> More manual steps, user assembles kit on device<br>
+        <strong>Flexibility:</strong> Works with any sampler, not just OP-1-F
+      </div>
+    </div>
+  </div>
+</div>

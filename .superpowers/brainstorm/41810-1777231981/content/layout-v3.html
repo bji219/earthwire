@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Phase 2 Layout v3</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif; background: #f2f0eb; color: #1a1a1a; min-height: 100vh; }
+  .app { display: flex; flex-direction: column; height: 100vh; }
+
+  .topbar { display: flex; align-items: center; gap: 1.5rem; padding: 0.6rem 1.25rem; background: #f2f0eb; border-bottom: 1px solid #ddd; font-size: 0.78rem; }
+  .topbar-brand { font-weight: 700; letter-spacing: -0.02em; }
+  .topbar-nav { display: flex; gap: 1rem; }
+  .topbar-nav a { color: #666; text-decoration: none; }
+  .topbar-nav a.active { color: #1a1a1a; font-weight: 600; }
+
+  .main { display: flex; flex: 1; overflow: hidden; }
+
+  /* LEFT: Sample browser */
+  .browser { flex: 1; display: flex; flex-direction: column; border-right: 1px solid #ddd; overflow: hidden; }
+
+  .browser-tabs { display: flex; border-bottom: 1px solid #ddd; overflow-x: auto; }
+  .browser-tab { padding: 0.55rem 1rem; font-size: 0.75rem; font-weight: 500; color: #999; cursor: pointer; border-bottom: 2px solid transparent; white-space: nowrap; flex-shrink: 0; }
+  .browser-tab.active { color: #1a1a1a; border-bottom-color: #1a1a1a; }
+
+  .browser-search { padding: 0.65rem 1rem; border-bottom: 1px solid #ddd; display: flex; gap: 0.5rem; align-items: center; }
+  .browser-search input { flex: 1; border: 1px solid #ccc; border-radius: 4px; padding: 0.35rem 0.6rem; font-size: 0.78rem; background: #fff; outline: none; }
+  .filter-pill { font-size: 0.7rem; padding: 0.25rem 0.55rem; border: 1px solid #ccc; border-radius: 12px; color: #666; cursor: pointer; white-space: nowrap; }
+  .filter-pill.active { border-color: #4a7c59; color: #4a7c59; background: #f0f5f1; }
+
+  .results { flex: 1; overflow-y: auto; }
+  .section-label { font-size: 0.65rem; font-weight: 600; letter-spacing: 0.08em; color: #aaa; text-transform: uppercase; padding: 0.6rem 1rem 0.3rem; }
+
+  /* My Sounds tab */
+  .drop-zone { margin: 1rem; border: 2px dashed #ccc; border-radius: 6px; padding: 1.5rem 1rem; text-align: center; color: #aaa; font-size: 0.8rem; cursor: pointer; }
+  .drop-zone:hover { border-color: #4a7c59; color: #4a7c59; }
+  .drop-zone-icon { font-size: 1.6rem; margin-bottom: 0.4rem; }
+  .drop-zone-sub { font-size: 0.67rem; color: #bbb; margin-top: 0.3rem; }
+
+  .result-item { display: flex; align-items: center; gap: 0.6rem; padding: 0.55rem 1rem; border-bottom: 1px solid #eee; cursor: pointer; }
+  .result-item:hover { background: #eceae4; }
+  .result-play { width: 20px; height: 20px; border-radius: 50%; background: #1a1a1a; color: #fff; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 0.55rem; }
+  .result-info { flex: 1; min-width: 0; }
+  .result-name { font-size: 0.77rem; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .result-meta { font-size: 0.67rem; color: #999; margin-top: 0.1rem; }
+  .result-dur { font-size: 0.7rem; color: #aaa; flex-shrink: 0; font-variant-numeric: tabular-nums; }
+  .result-add { font-size: 0.68rem; padding: 0.18rem 0.5rem; border: 1px solid #ccc; border-radius: 3px; color: #666; cursor: pointer; flex-shrink: 0; }
+  .result-add:hover { border-color: #4a7c59; color: #4a7c59; }
+
+  /* RIGHT: Kit builder */
+  .kit { width: 300px; flex-shrink: 0; display: flex; flex-direction: column; }
+
+  .kit-header { padding: 0.55rem 1rem; border-bottom: 1px solid #ddd; display: flex; align-items: center; justify-content: space-between; }
+  .kit-title { font-size: 0.78rem; font-weight: 600; }
+  .kit-name-input { font-size: 0.75rem; border: none; background: transparent; color: #666; text-align: right; outline: none; font-style: italic; }
+
+  .kit-device { display: flex; border-bottom: 1px solid #ddd; }
+  .kit-mode { flex: 1; padding: 0.38rem 0; text-align: center; font-size: 0.7rem; color: #aaa; cursor: pointer; border-bottom: 2px solid transparent; }
+  .kit-mode.active { color: #1a1a1a; font-weight: 600; border-bottom-color: #1a1a1a; }
+  .kit-mode-sub { font-size: 0.59rem; color: #bbb; display: block; }
+
+  /* Time budget bar */
+  .kit-budget { padding: 0.55rem 1rem; border-bottom: 1px solid #ddd; }
+  .kit-budget-label { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 0.3rem; }
+  .kit-budget-text { font-size: 0.67rem; color: #aaa; }
+  .kit-budget-used { font-size: 0.67rem; font-variant-numeric: tabular-nums; color: #1a1a1a; font-weight: 500; }
+  .budget-bar { height: 3px; background: #e8e6e0; border-radius: 2px; overflow: hidden; }
+  .budget-fill { height: 100%; background: #4a7c59; border-radius: 2px; width: 18%; transition: width 300ms; }
+  .budget-fill.warn { background: #e8a040; }
+  .budget-fill.over { background: #c0392b; }
+
+  .kit-slots { flex: 1; overflow-y: auto; }
+  .slot { display: flex; align-items: center; gap: 0.45rem; padding: 0.28rem 0.75rem; border-bottom: 1px solid #e8e6e0; min-height: 30px; }
+  .slot:hover { background: #eceae4; }
+  .slot.active-slot { background: #eceae4; }
+  .slot-num { font-size: 0.68rem; color: #bbb; width: 1.1rem; text-align: right; flex-shrink: 0; font-variant-numeric: tabular-nums; }
+  .slot-note { font-size: 0.58rem; color: #ccc; width: 1.4rem; flex-shrink: 0; }
+  .slot-dot { width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0; }
+  .slot-dot.filled { background: #4a7c59; }
+  .slot-dot.empty { border: 1px solid #ddd; }
+  .slot-name { font-size: 0.71rem; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .slot-name.empty { color: #ccc; }
+  .slot-dur { font-size: 0.6rem; color: #bbb; flex-shrink: 0; font-variant-numeric: tabular-nums; }
+  .slot-src { font-size: 0.58rem; color: #ccc; flex-shrink: 0; background: #e8e6e0; border-radius: 2px; padding: 0 3px; }
+  .slot-del { font-size: 0.58rem; color: #ddd; cursor: pointer; flex-shrink: 0; }
+  .slot-del:hover { color: #c0392b; }
+
+  .kit-footer { padding: 0.65rem 1rem; border-top: 1px solid #ddd; }
+  .kit-footer-row { display: flex; align-items: center; justify-content: space-between; }
+  .kit-count { font-size: 0.68rem; color: #aaa; }
+  .export-btn { font-size: 0.75rem; font-weight: 500; background: none; border: none; cursor: pointer; }
+  .export-btn:hover { opacity: 0.6; }
+  .kit-hint { font-size: 0.6rem; color: #ccc; margin-top: 0.35rem; }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="topbar">
+    <span class="topbar-brand">Earthwire</span>
+    <nav class="topbar-nav">
+      <a href="#">Sequencer</a>
+      <a href="#" class="active">Samples</a>
+      <a href="#">Docs</a>
+    </nav>
+  </div>
+
+  <div class="main">
+    <!-- LEFT -->
+    <div class="browser">
+      <div class="browser-tabs">
+        <div class="browser-tab active">📁 My Sounds</div>
+        <div class="browser-tab">🌿 Freesound</div>
+        <div class="browser-tab">Xeno-canto</div>
+        <div class="browser-tab">🐦 Bird Sounds</div>
+      </div>
+
+      <!-- My Sounds content -->
+      <div class="results">
+        <div class="drop-zone">
+          <div class="drop-zone-icon">📂</div>
+          <div>drag and drop audio files here</div>
+          <div class="drop-zone-sub">or click to browse · mp3, wav, aiff, flac, ogg supported</div>
+        </div>
+
+        <div class="section-label">my library · 3 files</div>
+
+        <div class="result-item">
+          <div class="result-play">▶</div>
+          <div class="result-info">
+            <div class="result-name">creek-recording.wav</div>
+            <div class="result-meta">local · 44.1 kHz · stereo</div>
+          </div>
+          <div class="result-dur">0:14</div>
+          <div class="result-add">+ Add</div>
+        </div>
+
+        <div class="result-item">
+          <div class="result-play">▶</div>
+          <div class="result-info">
+            <div class="result-name">thunder-distant.aif</div>
+            <div class="result-meta">local · 48 kHz · stereo</div>
+          </div>
+          <div class="result-dur">0:08</div>
+          <div class="result-add">+ Add</div>
+        </div>
+
+        <div class="result-item">
+          <div class="result-play">▶</div>
+          <div class="result-info">
+            <div class="result-name">field-recording-morning.mp3</div>
+            <div class="result-meta">local · 320kbps · stereo</div>
+          </div>
+          <div class="result-dur">2:34</div>
+          <div class="result-add">+ Add</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT: Kit -->
+    <div class="kit">
+      <div class="kit-header">
+        <span class="kit-title">drum kit</span>
+        <input class="kit-name-input" value="dawn chorus" placeholder="kit name...">
+      </div>
+
+      <div class="kit-device">
+        <div class="kit-mode">OP–1 / OP–Z<span class="kit-mode-sub">mono · 12s total</span></div>
+        <div class="kit-mode active">OP–1 field<span class="kit-mode-sub">stereo · 20s total</span></div>
+      </div>
+
+      <!-- Total time budget bar -->
+      <div class="kit-budget">
+        <div class="kit-budget-label">
+          <span class="kit-budget-text">time budget</span>
+          <span class="kit-budget-used">3.6s / 20s</span>
+        </div>
+        <div class="budget-bar">
+          <div class="budget-fill" style="width:18%"></div>
+        </div>
+      </div>
+
+      <div class="kit-slots">
+        <div class="slot active-slot">
+          <div class="slot-num">1</div>
+          <div class="slot-note">F</div>
+          <div class="slot-dot filled"></div>
+          <div class="slot-name">nightingale song</div>
+          <div class="slot-dur">1.4s</div>
+          <div class="slot-src">xc</div>
+          <div class="slot-del">✕</div>
+        </div>
+        <div class="slot">
+          <div class="slot-num">2</div>
+          <div class="slot-note">F#</div>
+          <div class="slot-dot filled"></div>
+          <div class="slot-name">creek-recording</div>
+          <div class="slot-dur">0.8s</div>
+          <div class="slot-src">local</div>
+          <div class="slot-del">✕</div>
+        </div>
+        <div class="slot">
+          <div class="slot-num">3</div>
+          <div class="slot-note">G</div>
+          <div class="slot-dot filled"></div>
+          <div class="slot-name">blackcap full song</div>
+          <div class="slot-dur">1.4s</div>
+          <div class="slot-src">xc</div>
+          <div class="slot-del">✕</div>
+        </div>
+        <div class="slot"><div class="slot-num">4</div><div class="slot-note">G#</div><div class="slot-dot empty"></div><div class="slot-name empty">empty</div></div>
+        <div class="slot"><div class="slot-num">5</div><div class="slot-note">A</div><div class="slot-dot empty"></div><div class="slot-name empty">empty</div></div>
+        <div class="slot"><div class="slot-num">6</div><div class="slot-num">A#</div><div class="slot-dot empty"></div><div class="slot-name empty">empty</div></div>
+        <div class="slot"><div class="slot-num">7</div><div class="slot-note">B</div><div class="slot-dot empty"></div><div class="slot-name empty">empty</div></div>
+        <div class="slot"><div class="slot-num">8</div><div class="slot-note">C</div><div class="slot-dot empty"></div><div class="slot-name empty">empty</div></div>
+        <div class="slot"><div class="slot-num">9</div><div class="slot-note">C#</div><div class="slot-dot empty"></div><div class="slot-name empty">empty</div></div>
+        <div class="slot"><div class="slot-num">10</div><div class="slot-note">D</div><div class="slot-dot empty"></div><div class="slot-name empty">empty</div></div>
+        <div class="slot"><div class="slot-num">11</div><div class="slot-note">D#</div><div class="slot-dot empty"></div><div class="slot-name empty">empty</div></div>
+        <div class="slot"><div class="slot-num">12</div><div class="slot-note">E</div><div class="slot-dot empty"></div><div class="slot-name empty">empty</div></div>
+        <div class="slot"><div class="slot-num">13</div><div class="slot-note">F</div><div class="slot-dot empty"></div><div class="slot-name empty">empty</div></div>
+        <div class="slot"><div class="slot-num">14</div><div class="slot-note">F#</div><div class="slot-dot empty"></div><div class="slot-name empty">empty</div></div>
+        <div class="slot"><div class="slot-num">15</div><div class="slot-note">G</div><div class="slot-dot empty"></div><div class="slot-name empty">empty</div></div>
+        <div class="slot"><div class="slot-num">16</div><div class="slot-note">G#</div><div class="slot-dot empty"></div><div class="slot-name empty">empty</div></div>
+        <div class="slot"><div class="slot-num">17</div><div class="slot-note">A</div><div class="slot-dot empty"></div><div class="slot-name empty">empty</div></div>
+        <div class="slot"><div class="slot-num">18</div><div class="slot-note">A#</div><div class="slot-dot empty"></div><div class="slot-name empty">empty</div></div>
+        <div class="slot"><div class="slot-num">19</div><div class="slot-note">B</div><div class="slot-dot empty"></div><div class="slot-name empty">empty</div></div>
+        <div class="slot"><div class="slot-num">20</div><div class="slot-note">C</div><div class="slot-dot empty"></div><div class="slot-name empty">empty</div></div>
+        <div class="slot"><div class="slot-num">21</div><div class="slot-note">C#</div><div class="slot-dot empty"></div><div class="slot-name empty">empty</div></div>
+        <div class="slot"><div class="slot-num">22</div><div class="slot-note">D</div><div class="slot-dot empty"></div><div class="slot-name empty">empty</div></div>
+        <div class="slot"><div class="slot-num">23</div><div class="slot-note">D#</div><div class="slot-dot empty"></div><div class="slot-name empty">empty</div></div>
+        <div class="slot"><div class="slot-num">24</div><div class="slot-note">E</div><div class="slot-dot empty"></div><div class="slot-name empty">empty</div></div>
+      </div>
+
+      <div class="kit-footer">
+        <div class="kit-footer-row">
+          <span class="kit-count">3 / 24 slots</span>
+          <button class="export-btn">export kit →</button>
+        </div>
+        <div class="kit-hint">arrow keys navigate · space previews · backspace deletes</div>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

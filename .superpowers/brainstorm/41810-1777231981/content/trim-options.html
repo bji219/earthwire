@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Trim UI Options</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif; background: #f2f0eb; color: #1a1a1a; padding: 1.5rem; }
+  h2 { font-size: 1rem; font-weight: 600; margin-bottom: 0.4rem; }
+  .subtitle { font-size: 0.8rem; color: #888; margin-bottom: 1.5rem; }
+
+  .split { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+
+  .option-card { background: #fff; border: 1px solid #ddd; border-radius: 8px; overflow: hidden; cursor: pointer; transition: border-color 150ms, box-shadow 150ms; }
+  .option-card:hover { border-color: #4a7c59; box-shadow: 0 0 0 3px rgba(74,124,89,0.1); }
+  .option-card.selected { border-color: #4a7c59; box-shadow: 0 0 0 3px rgba(74,124,89,0.15); }
+  .option-header { padding: 0.75rem 1rem; border-bottom: 1px solid #eee; display: flex; align-items: center; gap: 0.5rem; }
+  .option-letter { width: 22px; height: 22px; border-radius: 50%; background: #1a1a1a; color: #fff; font-size: 0.7rem; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .option-title { font-size: 0.82rem; font-weight: 600; }
+  .option-desc { font-size: 0.72rem; color: #888; padding: 0.6rem 1rem 0.75rem; line-height: 1.4; border-bottom: 1px solid #eee; }
+  .mockup-area { padding: 0.75rem; background: #f9f8f5; }
+
+  /* Shared slot styles */
+  .kit-panel { background: #f2f0eb; border: 1px solid #ddd; border-radius: 6px; overflow: hidden; font-size: 0.72rem; }
+  .kit-mini-header { padding: 0.4rem 0.75rem; border-bottom: 1px solid #ddd; font-size: 0.7rem; font-weight: 600; display: flex; justify-content: space-between; }
+  .slot { display: flex; align-items: center; gap: 0.4rem; padding: 0.28rem 0.75rem; border-bottom: 1px solid #e8e6e0; min-height: 28px; }
+  .slot-num { font-size: 0.65rem; color: #bbb; width: 1rem; text-align: right; font-variant-numeric: tabular-nums; }
+  .slot-note { font-size: 0.56rem; color: #ccc; width: 1.3rem; }
+  .slot-dot { width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0; }
+  .slot-dot.filled { background: #4a7c59; }
+  .slot-dot.empty { border: 1px solid #ddd; }
+  .slot-name { font-size: 0.69rem; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .slot-name.empty { color: #ccc; }
+  .slot-dur { font-size: 0.58rem; color: #aaa; font-variant-numeric: tabular-nums; flex-shrink: 0; }
+
+  /* Option A: Expanded inline waveform */
+  .slot-expanded { border-bottom: 1px solid #ddd; background: #eceae4; }
+  .slot-expanded .slot-row { display: flex; align-items: center; gap: 0.4rem; padding: 0.28rem 0.75rem; }
+  .slot-expanded .slot-name { font-weight: 600; color: #1a1a1a; font-size: 0.69rem; }
+  .waveform-area { margin: 0 0.75rem 0.6rem; position: relative; }
+  .waveform-track { height: 36px; background: #ddd; border-radius: 3px; overflow: hidden; position: relative; display: flex; align-items: center; }
+  .waveform-bars { display: flex; align-items: center; gap: 1px; height: 100%; padding: 4px 2px; flex: 1; }
+  .waveform-bar { flex: 1; border-radius: 1px; background: #4a7c59; opacity: 0.7; }
+  .trim-region { position: absolute; left: 0; width: 45%; height: 100%; background: rgba(74,124,89,0.25); border-right: 2px solid #4a7c59; top: 0; }
+  .trim-handle { position: absolute; right: -5px; top: 50%; transform: translateY(-50%); width: 10px; height: 20px; background: #4a7c59; border-radius: 2px; cursor: ew-resize; display: flex; align-items: center; justify-content: center; }
+  .trim-handle::after { content: '|||'; font-size: 5px; color: rgba(255,255,255,0.8); letter-spacing: -1px; }
+  .waveform-labels { display: flex; justify-content: space-between; margin-top: 0.3rem; font-size: 0.6rem; color: #aaa; font-variant-numeric: tabular-nums; }
+  .trim-controls { display: flex; align-items: center; gap: 0.5rem; padding: 0 0.75rem 0.6rem; }
+  .trim-label { font-size: 0.62rem; color: #888; }
+  .trim-input { width: 3.5rem; border: 1px solid #ccc; border-radius: 3px; padding: 0.15rem 0.3rem; font-size: 0.68rem; font-variant-numeric: tabular-nums; text-align: center; background: #fff; }
+  .trim-max { font-size: 0.6rem; color: #ccc; }
+  .trim-play { font-size: 0.6rem; padding: 0.15rem 0.5rem; border: 1px solid #ccc; border-radius: 3px; cursor: pointer; color: #555; margin-left: auto; }
+
+  /* Option B: Simple duration field in slot row */
+  .slot-b-expanded { border-bottom: 1px solid #ddd; background: #eceae4; }
+  .slot-b-row { display: flex; align-items: center; gap: 0.4rem; padding: 0.28rem 0.75rem; }
+  .dur-slider-row { display: flex; align-items: center; gap: 0.5rem; padding: 0.3rem 0.75rem 0.6rem 2.6rem; }
+  .dur-slider { flex: 1; accent-color: #4a7c59; }
+  .dur-badge { font-size: 0.65rem; color: #4a7c59; font-weight: 600; font-variant-numeric: tabular-nums; min-width: 2.2rem; text-align: right; }
+  .dur-max-label { font-size: 0.6rem; color: #ccc; }
+</style>
+<script>
+  function selectCard(letter) {
+    document.querySelectorAll('.option-card').forEach(c => c.classList.remove('selected'));
+    document.getElementById('opt-' + letter).classList.add('selected');
+  }
+</script>
+</head>
+<body>
+
+<h2>How should per-slot sample trimming work?</h2>
+<p class="subtitle">Click a filled slot — how does the trim control appear?</p>
+
+<div class="split">
+
+  <!-- Option A: Inline waveform + drag handle -->
+  <div class="option-card" id="opt-a" onclick="selectCard('a')">
+    <div class="option-header">
+      <div class="option-letter">A</div>
+      <div class="option-title">Waveform expand — drag the trim handle</div>
+    </div>
+    <div class="option-desc">Click a slot → it expands to show the waveform. Drag the green handle to set the trim end point. Duration updates live. More visual — you can see where the sound cuts off.</div>
+    <div class="mockup-area">
+      <div class="kit-panel">
+        <div class="kit-mini-header"><span>dawn chorus</span><span style="color:#aaa;font-weight:400">3.6s / 20s</span></div>
+
+        <!-- Slot 1 expanded -->
+        <div class="slot-expanded">
+          <div class="slot-row slot">
+            <div class="slot-num">1</div>
+            <div class="slot-note">F</div>
+            <div class="slot-dot filled"></div>
+            <div class="slot-name">nightingale song</div>
+            <div class="slot-dur" style="color:#4a7c59;font-weight:600">1.4s</div>
+          </div>
+          <div class="waveform-area">
+            <div class="waveform-track">
+              <div class="waveform-bars">
+                <div class="waveform-bar" style="height:30%"></div><div class="waveform-bar" style="height:55%"></div>
+                <div class="waveform-bar" style="height:80%"></div><div class="waveform-bar" style="height:70%"></div>
+                <div class="waveform-bar" style="height:90%"></div><div class="waveform-bar" style="height:85%"></div>
+                <div class="waveform-bar" style="height:65%"></div><div class="waveform-bar" style="height:75%"></div>
+                <div class="waveform-bar" style="height:90%"></div><div class="waveform-bar" style="height:95%"></div>
+                <div class="waveform-bar" style="height:80%"></div><div class="waveform-bar" style="height:60%"></div>
+                <div class="waveform-bar" style="height:70%"></div><div class="waveform-bar" style="height:85%"></div>
+                <div class="waveform-bar" style="height:75%"></div><div class="waveform-bar" style="height:50%"></div>
+                <div class="waveform-bar" style="height:35%"></div><div class="waveform-bar" style="height:25%"></div>
+                <div class="waveform-bar" style="height:40%"></div><div class="waveform-bar" style="height:30%"></div>
+              </div>
+              <div class="trim-region">
+                <div class="trim-handle"></div>
+              </div>
+            </div>
+            <div class="waveform-labels">
+              <span>0s</span><span>1.4s ← trim</span><span>3.2s (full)</span>
+            </div>
+          </div>
+          <div class="trim-controls">
+            <span class="trim-label">trim to</span>
+            <input class="trim-input" value="1.4s">
+            <span class="trim-max">of 3.2s</span>
+            <div class="trim-play">▶ preview</div>
+          </div>
+        </div>
+
+        <div class="slot"><div class="slot-num">2</div><div class="slot-note">F#</div><div class="slot-dot filled"></div><div class="slot-name">creek-recording</div><div class="slot-dur">0.8s</div></div>
+        <div class="slot"><div class="slot-num">3</div><div class="slot-note">G</div><div class="slot-dot filled"></div><div class="slot-name">blackcap song</div><div class="slot-dur">1.4s</div></div>
+        <div class="slot"><div class="slot-num">4</div><div class="slot-note">G#</div><div class="slot-dot empty"></div><div class="slot-name empty">empty</div></div>
+        <div class="slot"><div class="slot-num">5</div><div class="slot-note">A</div><div class="slot-dot empty"></div><div class="slot-name empty">empty</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Option B: Simple slider in the row -->
+  <div class="option-card" id="opt-b" onclick="selectCard('b')">
+    <div class="option-header">
+      <div class="option-letter">B</div>
+      <div class="option-title">Inline slider — quick and compact</div>
+    </div>
+    <div class="option-desc">Click a slot → a trim slider drops below the row. Drag left to shorten. No waveform view — simpler, faster, keeps the kit panel compact. Duration shown live.</div>
+    <div class="mockup-area">
+      <div class="kit-panel">
+        <div class="kit-mini-header"><span>dawn chorus</span><span style="color:#aaa;font-weight:400">3.6s / 20s</span></div>
+
+        <!-- Slot 1 expanded (simple) -->
+        <div class="slot-b-expanded">
+          <div class="slot-b-row slot">
+            <div class="slot-num">1</div>
+            <div class="slot-note">F</div>
+            <div class="slot-dot filled"></div>
+            <div class="slot-name">nightingale song</div>
+            <div class="slot-dur" style="color:#4a7c59;font-weight:600">1.4s</div>
+          </div>
+          <div class="dur-slider-row">
+            <span style="font-size:0.6rem;color:#aaa">0s</span>
+            <input class="dur-slider" type="range" min="0.1" max="3.2" step="0.1" value="1.4" style="flex:1">
+            <span class="dur-badge">1.4s</span>
+            <span class="dur-max-label">/ 3.2s</span>
+          </div>
+        </div>
+
+        <div class="slot"><div class="slot-num">2</div><div class="slot-note">F#</div><div class="slot-dot filled"></div><div class="slot-name">creek-recording</div><div class="slot-dur">0.8s</div></div>
+        <div class="slot"><div class="slot-num">3</div><div class="slot-note">G</div><div class="slot-dot filled"></div><div class="slot-name">blackcap song</div><div class="slot-dur">1.4s</div></div>
+        <div class="slot"><div class="slot-num">4</div><div class="slot-note">G#</div><div class="slot-dot empty"></div><div class="slot-name empty">empty</div></div>
+        <div class="slot"><div class="slot-num">5</div><div class="slot-note">A</div><div class="slot-dot empty"></div><div class="slot-name empty">empty</div></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<p style="font-size:0.72rem;color:#aaa;margin-top:1rem;">Both options update the time budget bar live as you trim. Either can also include a start-point offset — so you can skip a silent intro in a recording.</p>
+
+</body>
+</html>

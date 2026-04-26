@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kit Panel Detail</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif; background: #f2f0eb; color: #1a1a1a; padding: 1.5rem; }
+  h2 { font-size: 0.95rem; font-weight: 700; margin-bottom: 0.25rem; }
+  .subtitle { font-size: 0.75rem; color: #888; margin-bottom: 1.25rem; }
+
+  .split { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; align-items: start; }
+
+  /* Kit panel */
+  .kit { background: #f2f0eb; border: 1px solid #ccc; border-radius: 6px; overflow: hidden; width: 100%; }
+
+  .kit-header { padding: 0.55rem 1rem; border-bottom: 1px solid #ddd; display: flex; justify-content: space-between; align-items: center; }
+  .kit-title { font-size: 0.78rem; font-weight: 600; }
+  .kit-name { font-size: 0.74rem; color: #888; font-style: italic; }
+
+  .kit-device { display: flex; border-bottom: 1px solid #ddd; }
+  .kit-mode { flex: 1; padding: 0.38rem 0; text-align: center; font-size: 0.69rem; color: #aaa; cursor: pointer; border-bottom: 2px solid transparent; }
+  .kit-mode.active { color: #1a1a1a; font-weight: 600; border-bottom-color: #1a1a1a; }
+  .kit-mode-sub { font-size: 0.58rem; color: #bbb; display: block; }
+
+  /* ── MULTI-COLOR SEGMENT BAR ── */
+  .segment-bar-wrap { padding: 0.65rem 1rem 0; }
+  .segment-bar { height: 28px; display: flex; border-radius: 3px; overflow: hidden; }
+  .segment { height: 100%; flex-shrink: 0; position: relative; }
+  .segment-empty {
+    flex: 1;
+    background-image: repeating-linear-gradient(
+      -45deg,
+      transparent,
+      transparent 3px,
+      rgba(0,0,0,0.08) 3px,
+      rgba(0,0,0,0.08) 4px
+    );
+    background-color: #e8e6e0;
+  }
+  .segment-label-row { display: flex; justify-content: space-between; padding: 0.2rem 0 0.5rem; border-bottom: 1px solid #ddd; }
+  .seg-used { font-size: 0.63rem; color: #aaa; }
+  .seg-total { font-size: 0.63rem; color: #aaa; }
+
+  /* Color palette for segments — earthy/nature tones matching Earthwire's aesthetic */
+  .c1  { background: #c0552a; } /* terra cotta */
+  .c2  { background: #2d4a6e; } /* dark blue */
+  .c3  { background: #e8e0cc; } /* cream */
+  .c4  { background: #9a7c4a; } /* tan */
+  .c5  { background: #5a7a8a; } /* slate */
+  .c6  { background: #c06030; } /* burnt orange */
+  .c7  { background: #4a7c59; } /* green */
+  .c8  { background: #7a4a6e; } /* plum */
+
+  /* ── SLOT ROWS ── */
+  .kit-slots { }
+
+  .slot { display: flex; align-items: center; gap: 0; border-bottom: 1px solid #e8e6e0; min-height: 34px; cursor: pointer; }
+  .slot:hover { background: #eceae4; }
+  .slot.active { background: #1a1a1a; color: #fff; }
+  .slot.active .slot-name { color: #fff; }
+  .slot.active .slot-num { color: #888; }
+  .slot.active .slot-note { color: #666; }
+  .slot.active .slot-dur { color: #ccc; }
+  .slot.active .slot-dot { background: #fff; }
+  .slot.active .waveform-mini canvas { filter: invert(1); }
+
+  .slot-num { font-size: 0.69rem; color: #bbb; width: 2.2rem; text-align: right; padding-right: 0.5rem; font-variant-numeric: tabular-nums; flex-shrink: 0; }
+  .slot-dot-wrap { width: 1rem; flex-shrink: 0; display: flex; justify-content: center; }
+  .slot-dot { width: 5px; height: 5px; border-radius: 50%; background: #1a1a1a; }
+  .slot-dot.empty { background: transparent; border: 1px solid #ccc; }
+  .slot-name { font-size: 0.74rem; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #1a1a1a; padding: 0 0.5rem; }
+  .slot-name.empty { color: #bbb; font-style: italic; }
+
+  /* Mini waveform inline */
+  .waveform-mini { width: 80px; flex-shrink: 0; height: 24px; position: relative; display: flex; align-items: center; }
+  .waveform-mini svg { width: 70px; height: 22px; }
+
+  .playmode-arrow { font-size: 0.75rem; color: #aaa; flex-shrink: 0; width: 1.2rem; text-align: center; }
+  .slot.active .playmode-arrow { color: #666; }
+
+  .slot-dur { font-size: 0.7rem; color: #aaa; flex-shrink: 0; width: 2.8rem; text-align: right; padding-right: 0.75rem; font-variant-numeric: tabular-nums; letter-spacing: 0.02em; }
+
+  /* Expanded slot (trim) */
+  .slot-expanded { border-bottom: 1px solid #ddd; background: #1a1a1a; color: #fff; }
+  .slot-expanded .slot { background: #1a1a1a; color: #fff; border-bottom: 1px solid #333; }
+  .slot-expanded .slot-num { color: #666; }
+  .slot-expanded .slot-dot { background: #fff; }
+  .slot-expanded .slot-name { color: #fff; }
+  .slot-expanded .slot-dur { color: #aaa; }
+  .slot-expanded .playmode-arrow { color: #555; }
+
+  .waveform-expand { padding: 0.5rem 0.75rem 0.65rem; }
+  .waveform-track { height: 48px; background: #111; border-radius: 3px; position: relative; overflow: hidden; display: flex; align-items: center; padding: 6px 4px; gap: 1px; }
+  .wbar { flex: 1; border-radius: 1px; background: #fff; opacity: 0.8; }
+  .trim-overlay { position: absolute; right: 0; top: 0; bottom: 0; width: 55%; background: rgba(255,255,255,0.07); border-left: 2px solid #4a7c59; }
+  .trim-knob { position: absolute; left: -5px; top: 50%; transform: translateY(-50%); width: 10px; height: 22px; background: #4a7c59; border-radius: 2px; cursor: ew-resize; }
+  .waveform-time-row { display: flex; justify-content: space-between; font-size: 0.6rem; color: #555; margin-top: 0.3rem; font-variant-numeric: tabular-nums; }
+  .trim-controls { display: flex; align-items: center; gap: 0.5rem; margin-top: 0.4rem; }
+  .trim-label { font-size: 0.62rem; color: #777; }
+  .trim-input { width: 3.2rem; border: 1px solid #333; background: #222; color: #fff; border-radius: 3px; padding: 0.15rem 0.3rem; font-size: 0.68rem; text-align: center; }
+  .trim-of { font-size: 0.6rem; color: #555; }
+  .preview-btn { margin-left: auto; font-size: 0.62rem; padding: 0.18rem 0.5rem; border: 1px solid #333; border-radius: 3px; color: #aaa; cursor: pointer; background: #222; }
+  .preview-btn:hover { border-color: #4a7c59; color: #4a7c59; }
+
+  .kit-footer { padding: 0.65rem 1rem; border-top: 1px solid #ddd; display: flex; justify-content: space-between; align-items: center; }
+  .kit-count { font-size: 0.68rem; color: #aaa; }
+  .export-btn { font-size: 0.75rem; font-weight: 500; background: none; border: none; cursor: pointer; }
+
+  /* Notes column */
+  .notes { font-size: 0.78rem; }
+  .notes h3 { font-size: 0.8rem; font-weight: 600; margin-bottom: 0.75rem; }
+  .note-item { display: flex; gap: 0.6rem; margin-bottom: 0.75rem; align-items: flex-start; }
+  .note-num { width: 1.4rem; height: 1.4rem; border-radius: 50%; background: #1a1a1a; color: #fff; font-size: 0.65rem; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 0.1rem; }
+  .note-text { font-size: 0.75rem; color: #555; line-height: 1.45; }
+  .note-text strong { color: #1a1a1a; }
+</style>
+</head>
+<body>
+
+<h2>Kit Panel — Updated Design</h2>
+<p class="subtitle">Incorporating the TE drum utility's multi-color segment bar, inline mini waveforms, and dark active slot. Click slot 1 to see expanded trim.</p>
+
+<div class="split">
+
+  <div class="kit">
+    <div class="kit-header">
+      <span class="kit-title">drum kit</span>
+      <span class="kit-name">dawn chorus</span>
+    </div>
+    <div class="kit-device">
+      <div class="kit-mode">OP–1 / OP–Z<span class="kit-mode-sub">mono · 12s</span></div>
+      <div class="kit-mode active">OP–1 field<span class="kit-mode-sub">stereo · 20s</span></div>
+    </div>
+
+    <!-- MULTI-COLOR SEGMENT BAR -->
+    <div class="segment-bar-wrap">
+      <div class="segment-bar">
+        <!-- Each segment width = (duration / 20s) * 100% -->
+        <div class="segment c1" style="width:7%"  title="nightingale · 1.4s"></div>
+        <div class="segment c2" style="width:4%"  title="creek · 0.8s"></div>
+        <div class="segment c3" style="width:7%"  title="blackcap · 1.4s"></div>
+        <div class="segment-empty"></div>
+      </div>
+      <div class="segment-label-row">
+        <span class="seg-used">3.6s used</span>
+        <span class="seg-total">20s total</span>
+      </div>
+    </div>
+
+    <!-- SLOTS -->
+    <div class="kit-slots">
+
+      <!-- Slot 1 — EXPANDED (active, selected) -->
+      <div class="slot-expanded">
+        <div class="slot active">
+          <div class="slot-num">1</div>
+          <div class="slot-dot-wrap"><div class="slot-dot" style="background:#c0552a"></div></div>
+          <div class="slot-name">nightingale song.mp3</div>
+          <div class="waveform-mini">
+            <svg viewBox="0 0 70 22" preserveAspectRatio="none">
+              <path d="M0,11 Q3,11 5,8 Q7,4 9,7 Q11,10 13,6 Q15,2 17,5 Q19,9 21,7 Q23,4 25,6 Q27,9 29,8 Q31,6 33,9 Q35,11 37,10 Q39,9 41,10 Q43,11 45,11 Q47,11 49,11 Q51,11 53,11 Q55,11 57,11 Q59,11 61,11 Q63,11 65,11 Q67,11 70,11"
+                    fill="none" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <div class="playmode-arrow">→</div>
+          <div class="slot-dur">01.40</div>
+        </div>
+        <!-- Waveform expand -->
+        <div class="waveform-expand">
+          <div class="waveform-track">
+            <div class="wbar" style="height:15%"></div><div class="wbar" style="height:40%"></div>
+            <div class="wbar" style="height:70%"></div><div class="wbar" style="height:90%"></div>
+            <div class="wbar" style="height:85%"></div><div class="wbar" style="height:95%"></div>
+            <div class="wbar" style="height:80%"></div><div class="wbar" style="height:75%"></div>
+            <div class="wbar" style="height:88%"></div><div class="wbar" style="height:92%"></div>
+            <div class="wbar" style="height:70%"></div><div class="wbar" style="height:60%"></div>
+            <div class="wbar" style="height:50%"></div><div class="wbar" style="height:45%"></div>
+            <div class="wbar" style="height:55%"></div><div class="wbar" style="height:60%"></div>
+            <div class="wbar" style="height:40%"></div><div class="wbar" style="height:35%"></div>
+            <div class="wbar" style="height:30%"></div><div class="wbar" style="height:25%"></div>
+            <div class="trim-overlay"><div class="trim-knob"></div></div>
+          </div>
+          <div class="waveform-time-row">
+            <span>00.00</span><span>← 01.40 trim</span><span>03.20 full</span>
+          </div>
+          <div class="trim-controls">
+            <span class="trim-label">trim to</span>
+            <input class="trim-input" value="01.40">
+            <span class="trim-of">of 03.20</span>
+            <button class="preview-btn">▶ preview</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Slot 2 -->
+      <div class="slot">
+        <div class="slot-num">2</div>
+        <div class="slot-dot-wrap"><div class="slot-dot" style="background:#2d4a6e"></div></div>
+        <div class="slot-name">creek-recording.wav</div>
+        <div class="waveform-mini">
+          <svg viewBox="0 0 70 22" preserveAspectRatio="none">
+            <path d="M0,11 Q5,11 8,7 Q11,3 14,6 Q17,9 20,7 Q23,5 26,8 Q29,11 32,10 Q35,9 38,10 Q41,11 44,11 Q47,11 50,11 Q53,11 56,11 Q59,11 62,11 Q65,11 70,11"
+                  fill="none" stroke="#1a1a1a" stroke-width="1.5" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <div class="playmode-arrow">→</div>
+        <div class="slot-dur">00.80</div>
+      </div>
+
+      <!-- Slot 3 -->
+      <div class="slot">
+        <div class="slot-num">3</div>
+        <div class="slot-dot-wrap"><div class="slot-dot" style="background:#e8a040"></div></div>
+        <div class="slot-name">blackcap full song.ogg</div>
+        <div class="waveform-mini">
+          <svg viewBox="0 0 70 22" preserveAspectRatio="none">
+            <path d="M0,11 Q4,11 7,5 Q10,1 13,4 Q16,8 19,5 Q22,2 25,5 Q28,9 31,7 Q34,5 37,8 Q40,11 43,10 Q46,9 49,10 Q52,11 55,11 Q58,11 61,11 Q64,11 70,11"
+                  fill="none" stroke="#1a1a1a" stroke-width="1.5" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <div class="playmode-arrow">→</div>
+        <div class="slot-dur">01.40</div>
+      </div>
+
+      <!-- Slots 4-7 empty -->
+      <div class="slot"><div class="slot-num">4</div><div class="slot-dot-wrap"><div class="slot-dot empty"></div></div><div class="slot-name empty">(empty)</div><div class="waveform-mini"></div><div class="playmode-arrow"></div><div class="slot-dur"></div></div>
+      <div class="slot"><div class="slot-num">5</div><div class="slot-dot-wrap"><div class="slot-dot empty"></div></div><div class="slot-name empty">(empty)</div><div class="waveform-mini"></div><div class="playmode-arrow"></div><div class="slot-dur"></div></div>
+      <div class="slot"><div class="slot-num">6</div><div class="slot-dot-wrap"><div class="slot-dot empty"></div></div><div class="slot-name empty">(empty)</div><div class="waveform-mini"></div><div class="playmode-arrow"></div><div class="slot-dur"></div></div>
+      <div class="slot"><div class="slot-num">7</div><div class="slot-dot-wrap"><div class="slot-dot empty"></div></div><div class="slot-name empty">(empty)</div><div class="waveform-mini"></div><div class="playmode-arrow"></div><div class="slot-dur"></div></div>
+    </div>
+
+    <div class="kit-footer">
+      <span class="kit-count">3 / 24 slots</span>
+      <button class="export-btn">export kit →</button>
+    </div>
+  </div>
+
+  <!-- Notes -->
+  <div class="notes">
+    <h3>New elements from TE's design</h3>
+
+    <div class="note-item">
+      <div class="note-num">1</div>
+      <div class="note-text"><strong>Multi-color segment bar</strong> — each sample gets a unique earthy color. Block width = duration ÷ total budget. Empty space shows as diagonal hatching. Colors persist per slot so you can identify samples at a glance.</div>
+    </div>
+
+    <div class="note-item">
+      <div class="note-num">2</div>
+      <div class="note-text"><strong>Inline mini waveform</strong> — drawn in every filled slot row. A tiny SVG/canvas path showing the shape of the audio. Generated from the decoded AudioBuffer on add. Inverts to white when the slot is selected (dark background).</div>
+    </div>
+
+    <div class="note-item">
+      <div class="note-num">3</div>
+      <div class="note-text"><strong>Dark active slot</strong> — selected slot flips to black background / white text, matching TE's convention. The expanded waveform below also uses a dark theme.</div>
+    </div>
+
+    <div class="note-item">
+      <div class="note-num">4</div>
+      <div class="note-text"><strong>Duration format</strong> — shown as <code>MM.SS</code> (e.g. <code>01.40</code> = 1.40 seconds, <code>00.68</code> = 0.68 seconds). Matches TE exactly.</div>
+    </div>
+
+    <div class="note-item">
+      <div class="note-num">5</div>
+      <div class="note-text"><strong>Playmode arrow →</strong> — indicates OneShot playback mode per slot. Could be expanded to show Loop (↻) or Gate in future.</div>
+    </div>
+
+    <div class="note-item">
+      <div class="note-num">6</div>
+      <div class="note-text"><strong>Colored dot per slot</strong> — matches the segment bar color so you can link a slot to its position in the budget bar instantly.</div>
+    </div>
+  </div>
+
+</div>
+
+</body>
+</html>
