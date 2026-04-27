@@ -33,7 +33,10 @@
       if (quality) params.set('quality', quality);
       if (country) params.set('country', country);
       const res = await fetch(`/api/xeno-canto?${params}`);
-      if (!res.ok) throw new Error(await res.text());
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body?.message ?? `Error ${res.status}`);
+      }
       const data = await res.json();
       results = data.recordings ?? [];
     } catch (e: any) {

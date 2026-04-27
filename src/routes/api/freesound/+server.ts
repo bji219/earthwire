@@ -10,6 +10,10 @@ export const GET: RequestHandler = async ({ url }) => {
 
   const clientId = FREESOUND_CLIENT_ID ?? '';
 
+  if (action === 'search' && !clientId) {
+    throw error(503, 'Freesound API key not configured. Add FREESOUND_CLIENT_ID to your .env file — get one at freesound.org/apiv2/apply/');
+  }
+
   if (action === 'search') {
     const query   = url.searchParams.get('q') ?? '';
     const maxLen  = url.searchParams.get('max_duration') ?? '';

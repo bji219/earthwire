@@ -27,7 +27,10 @@
       if (maxDuration) params.set('max_duration', maxDuration);
       if (cc0Only) params.set('cc0', '1');
       const res = await fetch(`/api/freesound?${params}`);
-      if (!res.ok) throw new Error(await res.text());
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body?.message ?? `Error ${res.status}`);
+      }
       const data = await res.json();
       results = data.results ?? [];
     } catch (e: any) {
