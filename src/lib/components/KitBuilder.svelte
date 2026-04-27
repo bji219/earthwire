@@ -119,9 +119,11 @@
         ].join('\n');
         const tblob = new Blob([txt], { type: 'text/plain' });
         const ta = document.createElement('a');
-        ta.href = URL.createObjectURL(tblob);
+        const turl = URL.createObjectURL(tblob);
+        ta.href = turl;
         ta.download = `${$kit.name.replace(/[^a-z0-9_-]/gi, '_')}-credits.txt`;
         ta.click();
+        URL.revokeObjectURL(turl);
       }
     } catch (err: any) {
       exportError = err?.message ?? 'Export failed';
