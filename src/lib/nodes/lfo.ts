@@ -1,12 +1,6 @@
-export type LFOShape = 'sine' | 'triangle' | 'square' | 'saw' | 'rsaw';
+import type { LFOShape, LFOConfig } from './types.js';
 
-export interface LFOConfig {
-  shape: LFOShape;
-  /** Frequency in Hz. */
-  rate: number;
-  /** 0 = passthrough (pure env data), 1 = pure LFO. */
-  depth: number;
-}
+export type { LFOShape, LFOConfig } from './types.js';
 
 export interface LFO {
   /** input: normalized env-data value 0–1. nowSec: seconds since epoch (defaults to Date.now()/1000). */

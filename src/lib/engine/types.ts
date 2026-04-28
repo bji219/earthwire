@@ -1,12 +1,24 @@
-import type { NormalizerConfig, SmootherConfig, QuantizerConfig, ThresholdConfig } from '../nodes/types.js';
+import type { NormalizerConfig, SmootherConfig, QuantizerConfig, ThresholdConfig, LFOConfig } from '../nodes/types.js';
+import type { TimeRangePreset } from '../sources/types.js';
+
+export interface LocationConfig {
+	lat: number;
+	lng: number;
+	radiusKm: number;
+	region?: string;
+}
 
 export interface ChannelConfig {
 	sourceId: string;
 	fieldId: string;
+	timeRange?: TimeRangePreset;
+	location?: LocationConfig;
+	tickRate?: number; // clock multiplier: 0.25–4.0 (default 1.0 = 100%)
 	normalizer: NormalizerConfig;
 	smoother: SmootherConfig | null;
 	quantizer: QuantizerConfig | null;
 	threshold: ThresholdConfig | null;
+	lfo: LFOConfig | null;
 	output: OutputConfig;
 }
 
@@ -14,6 +26,7 @@ export type OutputConfig =
 	| { type: 'midi-cc'; channel: number; cc: number; port?: string }
 	| { type: 'midi-note'; channel: number; port?: string }
 	| { type: 'midi-trigger'; channel: number; note: number; port?: string }
+	| { type: 'cv'; audioChannel: number }
 	| { type: 'osc'; address?: string }
 	| { type: 'demo-synth'; param: DemoSynthParam };
 
