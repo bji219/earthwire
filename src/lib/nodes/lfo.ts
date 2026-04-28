@@ -9,6 +9,7 @@ export interface LFOConfig {
 }
 
 export interface LFO {
+  /** input: normalized env-data value 0–1. nowSec: seconds since epoch (defaults to Date.now()/1000). */
   process(input: number, nowSec?: number): number;
   reset(): void;
 }
