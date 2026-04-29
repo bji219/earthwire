@@ -8,7 +8,7 @@ describe('EarthwireEngine', () => {
     const channel: ChannelConfig = {
       sourceId: 'test', fieldId: 'value',
       normalizer: { mode: 'manual', min: 0, max: 100 },
-      smoother: null, quantizer: null, threshold: null,
+      lfo: null, smoother: null, quantizer: null, threshold: null,
       output: { type: 'midi-cc', channel: 1, cc: 1 }
     };
     engine.addChannel(channel);
@@ -22,6 +22,7 @@ describe('EarthwireEngine', () => {
     const channel: ChannelConfig = {
       sourceId: 'test', fieldId: 'value',
       normalizer: { mode: 'manual', min: 0, max: 100 },
+      lfo: null,
       smoother: { amount: 0.5 },
       quantizer: null, threshold: null,
       output: { type: 'midi-cc', channel: 1, cc: 1 }
@@ -38,13 +39,13 @@ describe('EarthwireEngine', () => {
     engine.addChannel({
       sourceId: 'a', fieldId: 'v',
       normalizer: { mode: 'manual', min: 0, max: 10 },
-      smoother: null, quantizer: null, threshold: null,
+      lfo: null, smoother: null, quantizer: null, threshold: null,
       output: { type: 'midi-cc', channel: 1, cc: 1 }
     });
     engine.addChannel({
       sourceId: 'b', fieldId: 'v',
       normalizer: { mode: 'manual', min: 0, max: 100 },
-      smoother: null, quantizer: null, threshold: null,
+      lfo: null, smoother: null, quantizer: null, threshold: null,
       output: { type: 'midi-cc', channel: 2, cc: 2 }
     });
     const out0 = engine.processValue(0, 5);
@@ -58,7 +59,7 @@ describe('EarthwireEngine', () => {
     engine.addChannel({
       sourceId: 'a', fieldId: 'v',
       normalizer: { mode: 'manual', min: 0, max: 10 },
-      smoother: null, quantizer: null, threshold: null,
+      lfo: null, smoother: null, quantizer: null, threshold: null,
       output: { type: 'midi-cc', channel: 1, cc: 1 }
     });
     expect(engine.channelCount).toBe(1);
@@ -71,6 +72,7 @@ describe('EarthwireEngine', () => {
     engine.addChannel({
       sourceId: 'test', fieldId: 'value',
       normalizer: { mode: 'manual', min: 0, max: 127 },
+      lfo: null,
       smoother: null,
       quantizer: { root: 60, scale: 'major' },
       threshold: null,
@@ -86,6 +88,7 @@ describe('EarthwireEngine', () => {
     engine.addChannel({
       sourceId: 'test', fieldId: 'value',
       normalizer: { mode: 'manual', min: 0, max: 100 },
+      lfo: null,
       smoother: null,
       quantizer: null,
       threshold: { level: 0.5, direction: 'rising', beatQuantize: null },
