@@ -181,27 +181,57 @@ function decodeAiff(buffer: ArrayBuffer, ctx: AudioContext): AudioBuffer {
 }
 
 /**
- * Trim an AudioBuffer to [trimStart, trimEnd] seconds using OfflineAudioContext.
- * Downmixes to `numChannels` output channels.
+ * Trim an AudioBuffer to [trimStart, trimEnd] seconds, downmix to `numChannels`,
+ * and resample to `targetSampleRate`.
+ *
+ * Two-pass approach to avoid unreliable cross-rate resampling in OfflineAudioContext:
+ *   1. Trim + downmix at the source's native sample rate.
+ *   2. If the rate differs from the target, manually linear-interpolate to targetSampleRate.
  */
 export async function trimBuffer(
   source: AudioBuffer,
   trimStart: number,
   trimEnd: number,
   numChannels: number,
-  sampleRate: number
+  targetSampleRate: number
 ): Promise<AudioBuffer> {
   const duration = trimEnd - trimStart;
-  const frameCount = Math.round(duration * sampleRate);
-  if (frameCount <= 0) throw new Error('Trim duration must be > 0');
+  if (duration <= 0) throw new Error('Trim duration must be > 0');
 
-  const ctx = new OfflineAudioContext(numChannels, frameCount, sampleRate);
-  const bufferSource = ctx.createBufferSource();
-  bufferSource.buffer = source;
-  bufferSource.connect(ctx.destination);
-  bufferSource.start(0, trimStart, duration);
+  const sourceSR = source.sampleRate;
+  const sourceFrames = Math.round(duration * sourceSR);
 
-  return ctx.startRendering();
+  // Pass 1: trim + channel downmix at the source's own sample rate
+  const trimCtx = new OfflineAudioContext(numChannels, Math.max(1, sourceFrames), sourceSR);
+  const trimSrc = trimCtx.createBufferSource();
+  trimSrc.buffer = source;
+  trimSrc.connect(trimCtx.destination);
+  trimSrc.start(0, trimStart, duration);
+  const trimmed = await trimCtx.startRendering();
+
+  if (sourceSR === targetSampleRate) return trimmed;
+
+  // Pass 2: linear-interpolation resample to targetSampleRate
+  const targetFrames = Math.round(duration * targetSampleRate);
+  const ratio = sourceSR / targetSampleRate;
+  const output = new AudioBuffer({
+    numberOfChannels: numChannels,
+    length: Math.max(1, targetFrames),
+    sampleRate: targetSampleRate,
+  });
+  for (let ch = 0; ch < numChannels; ch++) {
+    const src = trimmed.getChannelData(ch);
+    const dst = output.getChannelData(ch);
+    for (let i = 0; i < targetFrames; i++) {
+      const pos = i * ratio;
+      const idx = Math.floor(pos);
+      const frac = pos - idx;
+      const a = src[idx] ?? 0;
+      const b = src[idx + 1] ?? 0;
+      dst[i] = a + (b - a) * frac;
+    }
+  }
+  return output;
 }
 
 /**

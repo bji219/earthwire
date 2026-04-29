@@ -95,6 +95,7 @@
         const buf = kit.getBuffer(i);
         if (!buf) { trimmedBuffers.push(null); continue; }
         const effectiveEnd = effectiveTrimEnds[i] ?? slot.trimEnd;
+        if (effectiveEnd <= slot.trimStart) { trimmedBuffers.push(null); continue; }
         trimmedBuffers.push(await trimBuffer(buf, slot.trimStart, effectiveEnd, numChannels, sampleRate));
         exportProgress = ++done / filledCount * 0.8; // trim = 80% of progress
       }

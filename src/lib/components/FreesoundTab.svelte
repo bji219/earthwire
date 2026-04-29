@@ -17,12 +17,14 @@
   const cache = new Map<number, AudioBuffer>();
 
   function getAudioUrl(result: any): string {
-    return result.previews?.['preview-hq-mp3'] ?? result.previews?.['preview-lq-mp3'] ?? '';
+    const cdnUrl = result.previews?.['preview-hq-mp3'] ?? result.previews?.['preview-lq-mp3'] ?? '';
+    return `/api/freesound?action=download&url=${encodeURIComponent(cdnUrl)}`;
   }
 
   async function fetchAndDecode(result: any, ctx: AudioContext): Promise<AudioBuffer> {
     if (cache.has(result.id)) return cache.get(result.id)!;
     const res = await fetch(getAudioUrl(result));
+    if (!res.ok) throw new Error(`Failed to fetch audio: ${res.status}`);
     const buf = await ctx.decodeAudioData(await res.arrayBuffer());
     cache.set(result.id, buf);
     return buf;
