@@ -20,6 +20,7 @@
   let activeSlot = 0;
   let exporting = false;
   let exportError = '';
+  let exportProgress = 0; // 0–1
 
   $: maxSeconds = DEVICE_LIMITS[$kit.deviceMode];
   $: usedSeconds = $kit.slots.reduce(
@@ -66,6 +67,7 @@
   async function doExport() {
     exporting = true;
     exportError = '';
+    exportProgress = 0;
     try {
       const mode = $kit.deviceMode;
       const numChannels = DEVICE_CHANNELS[mode];
@@ -83,16 +85,19 @@
         return slot.trimStart + allowed;
       });
 
-      // Trim each slot's buffer
-      const trimmedBuffers: (AudioBuffer | null)[] = await Promise.all(
-        $kit.slots.map(async (slot, i) => {
-          if (!slot) return null;
-          const buf = kit.getBuffer(i);
-          if (!buf) return null;
-          const effectiveEnd = effectiveTrimEnds[i] ?? slot.trimEnd;
-          return trimBuffer(buf, slot.trimStart, effectiveEnd, numChannels, sampleRate);
-        })
-      );
+      // Trim each slot's buffer sequentially so we can track progress
+      const filledCount = $kit.slots.filter(Boolean).length;
+      let done = 0;
+      const trimmedBuffers: (AudioBuffer | null)[] = [];
+      for (let i = 0; i < $kit.slots.length; i++) {
+        const slot = $kit.slots[i];
+        if (!slot) { trimmedBuffers.push(null); continue; }
+        const buf = kit.getBuffer(i);
+        if (!buf) { trimmedBuffers.push(null); continue; }
+        const effectiveEnd = effectiveTrimEnds[i] ?? slot.trimEnd;
+        trimmedBuffers.push(await trimBuffer(buf, slot.trimStart, effectiveEnd, numChannels, sampleRate));
+        exportProgress = ++done / filledCount * 0.8; // trim = 80% of progress
+      }
 
       // Build APPL metadata
       const slotTimings = $kit.slots.map((slot, i) => {
@@ -118,6 +123,8 @@
         samples: stitched,
         applJson,
       });
+
+      exportProgress = 1;
 
       // Trigger download — copy into a plain ArrayBuffer to satisfy Blob's type constraint
       const aiffCopy: ArrayBuffer = aiffBytes.slice(0).buffer as ArrayBuffer;
@@ -155,6 +162,7 @@
       exportError = err?.message ?? 'Export failed';
     } finally {
       exporting = false;
+      exportProgress = 0;
     }
   }
 </script>
@@ -222,6 +230,12 @@
     </button>
   </div>
 
+  {#if exporting}
+    <div class="export-progress">
+      <div class="export-progress-bar" style="width:{exportProgress * 100}%"></div>
+    </div>
+  {/if}
+
   {#if exportError}
     <p class="export-error">{exportError}</p>
   {/if}
@@ -272,6 +286,14 @@
   }
   .export-btn:disabled { color: var(--text-muted); cursor: not-allowed; }
   .export-btn:hover:not(:disabled) { opacity: 0.6; }
+
+  .export-progress {
+    height: 2px; background: var(--border); flex-shrink: 0;
+  }
+  .export-progress-bar {
+    height: 100%; background: var(--accent, #4a7c59);
+    transition: width 0.15s ease;
+  }
 
   .export-error {
     font-size: 0.7rem; color: #c0392b; padding: 0.3rem 1rem;
