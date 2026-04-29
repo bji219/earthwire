@@ -25,3 +25,12 @@ Thumbs.db
 # test coverage
 coverage/
 .env.local
+
+# superpowers dev server state
+.superpowers/
+
+# local kit exports
+kit-exports/
+
+# claude session data
+.claude/

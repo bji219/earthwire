@@ -75,6 +75,18 @@ function createKitStore() {
       });
     },
 
+    swapSlots(a: number, b: number) {
+      const bufA = buffers.get(a);
+      const bufB = buffers.get(b);
+      if (bufA !== undefined) buffers.set(b, bufA); else buffers.delete(b);
+      if (bufB !== undefined) buffers.set(a, bufB); else buffers.delete(a);
+      applyUpdate(kit => {
+        const slots = [...kit.slots] as KitMeta['slots'];
+        [slots[a], slots[b]] = [slots[b], slots[a]];
+        return { ...kit, slots };
+      });
+    },
+
     getBuffer(index: number): AudioBuffer | undefined {
       return buffers.get(index);
     },

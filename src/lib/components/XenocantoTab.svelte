@@ -2,6 +2,8 @@
 <script lang="ts">
   import { createEventDispatcher, onMount } from 'svelte';
   import { formatDuration } from '$lib/kit/types';
+  import { audioPlayer } from '$lib/stores/audio-player';
+  import { dragPayload } from '$lib/stores/drag';
 
   export let initialQuery: string = '';
 
@@ -13,16 +15,23 @@
   let results: any[] = [];
   let loading = false;
   let error = '';
-  let audioCtx: AudioContext | null = null;
-  let playingId: string | null = null;
+
+  const cache = new Map<string, AudioBuffer>();
 
   onMount(() => {
     if (initialQuery) { query = initialQuery; search(); }
   });
 
-  function getCtx() {
-    if (!audioCtx || audioCtx.state === 'closed') audioCtx = new AudioContext();
-    return audioCtx;
+  function getAudioUrl(rec: any): string {
+    return `/api/xeno-canto/audio?id=${rec.id}`;
+  }
+
+  async function fetchAndDecode(rec: any, ctx: AudioContext): Promise<AudioBuffer> {
+    if (cache.has(rec.id)) return cache.get(rec.id)!;
+    const res = await fetch(getAudioUrl(rec));
+    const buf = await ctx.decodeAudioData(await res.arrayBuffer());
+    cache.set(rec.id, buf);
+    return buf;
   }
 
   async function search() {
@@ -46,38 +55,41 @@
     }
   }
 
-  function getAudioUrl(rec: any): string {
-    return rec.file ?? `https://xeno-canto.org/${rec.id}/download`;
+  function recName(rec: any): string {
+    return `${rec['en'] || rec['gen']} ${rec['sp']} (XC${rec.id})`;
   }
 
-  async function playPreview(rec: any) {
-    playingId = rec.id;
-    const ctx = getCtx();
-    const url = getAudioUrl(rec);
-    const res = await fetch(url);
-    const buf = await ctx.decodeAudioData(await res.arrayBuffer());
-    const src = ctx.createBufferSource();
-    src.buffer = buf; src.connect(ctx.destination); src.start();
-    src.onended = () => { if (playingId === rec.id) playingId = null; };
+  function playToggle(rec: any) {
+    const key = rec.id;
+    if ($audioPlayer.playingKey === key || $audioPlayer.loadingKey === key) {
+      audioPlayer.stop();
+    } else {
+      audioPlayer.play(key, ctx => fetchAndDecode(rec, ctx));
+    }
   }
 
   async function addToKit(rec: any) {
-    const ctx = getCtx();
-    const url = getAudioUrl(rec);
-    const res = await fetch(url);
-    const buffer = await ctx.decodeAudioData(await res.arrayBuffer());
-    const name = `${rec['en'] || rec['gen']} ${rec['sp']} (XC${rec.id})`;
-    dispatch('add', { name, remoteSrc: `https://xeno-canto.org/${rec.id}`, buffer });
+    const ctx = audioPlayer.getCtx();
+    const buffer = await fetchAndDecode(rec, ctx);
+    dispatch('add', { name: recName(rec), remoteSrc: `https://xeno-canto.org/${rec.id}`, buffer });
+  }
+
+  function handleDragStart(e: DragEvent, rec: any) {
+    e.dataTransfer!.effectAllowed = 'copy';
+    e.dataTransfer!.setData('application/earthwire-sound', rec.id);
+    if (cache.has(rec.id)) {
+      dragPayload.set({ name: recName(rec), sourceType: 'xeno-canto', remoteSrc: `https://xeno-canto.org/${rec.id}`, buffer: cache.get(rec.id)! });
+    } else {
+      fetchAndDecode(rec, audioPlayer.getCtx()).then(buf =>
+        dragPayload.set({ name: recName(rec), sourceType: 'xeno-canto', remoteSrc: `https://xeno-canto.org/${rec.id}`, buffer: buf })
+      );
+    }
   }
 </script>
 
 <div class="xeno-tab">
   <div class="search-bar">
-    <input
-      bind:value={query}
-      placeholder="Species name…"
-      on:keydown={e => e.key === 'Enter' && search()}
-    />
+    <input bind:value={query} placeholder="Species name…" on:keydown={e => e.key === 'Enter' && search()} />
     <select bind:value={quality}>
       <option value="">All quality</option>
       <option value="A">Quality A</option>
@@ -91,20 +103,33 @@
 
   {#if results.length > 0}
     <div class="section-label">{results.length} results · Xeno-canto</div>
-    {#each results as rec}
-      {@const dur = parseFloat(rec.length ?? '0')}
-      <div class="result-item">
-        <button class="play-btn" class:playing={playingId === rec.id} on:click={() => playPreview(rec)}>
-          {playingId === rec.id ? '■' : '▶'}
-        </button>
-        <div class="result-info">
-          <div class="result-name">{rec['en'] || rec['gen']} {rec['sp']}</div>
-          <div class="result-meta">{rec.cnt} · XC{rec.id} · Q:{rec.q}</div>
+    <div class="results-list">
+      {#each results as rec}
+        {@const dur = parseFloat(rec.length ?? '0')}
+        <div
+          class="result-item"
+          draggable="true"
+          on:click={() => playToggle(rec)}
+          on:dragstart={e => handleDragStart(e, rec)}
+          on:dragend={() => dragPayload.set(null)}
+        >
+          <button
+            class="play-btn"
+            class:playing={$audioPlayer.playingKey === rec.id}
+            class:loading={$audioPlayer.loadingKey === rec.id}
+            on:click|stopPropagation={() => playToggle(rec)}
+          >
+            {$audioPlayer.loadingKey === rec.id ? '…' : $audioPlayer.playingKey === rec.id ? '■' : '▶'}
+          </button>
+          <div class="result-info">
+            <div class="result-name">{rec['en'] || rec['gen']} {rec['sp']}</div>
+            <div class="result-meta">{rec.cnt} · XC{rec.id} · Q:{rec.q}</div>
+          </div>
+          <span class="result-dur">{formatDuration(dur)}</span>
+          <button class="add-btn" on:click|stopPropagation={() => addToKit(rec)}>+ Add</button>
         </div>
-        <span class="result-dur">{formatDuration(dur)}</span>
-        <button class="add-btn" on:click={() => addToKit(rec)}>+ Add</button>
-      </div>
-    {/each}
+      {/each}
+    </div>
   {/if}
 </div>
 
@@ -117,19 +142,21 @@
   .search-bar input, .search-bar select, .search-bar button {
     font-size: 0.75rem; padding: 0.3rem 0.5rem;
     border: 1px solid var(--border); border-radius: 4px;
-    background: var(--bg-input); color: var(--text-primary);
+    background: var(--bg-input); color: var(--text-primary); font-family: var(--font-body);
   }
   .search-bar input { outline: none; }
   .search-bar input:first-of-type { flex: 1; min-width: 8rem; }
-  .country-input { width: 5rem; }
-  .search-bar button { cursor: pointer; font-family: var(--font-body); }
+  .country-input { width: 5rem; flex: none !important; }
+  .search-bar button { cursor: pointer; }
   .section-label {
     font-size: 0.65rem; font-weight: 600; letter-spacing: 0.08em;
-    color: var(--text-muted); text-transform: uppercase; padding: 0.5rem 1rem 0.25rem;
+    color: var(--text-muted); text-transform: uppercase; padding: 0.5rem 1rem 0.25rem; flex-shrink: 0;
   }
+  .results-list { flex: 1; overflow-y: auto; }
   .result-item {
     display: flex; align-items: center; gap: 0.6rem;
     padding: 0.5rem 1rem; border-bottom: 1px solid var(--border-light, #eee);
+    cursor: pointer;
   }
   .result-item:hover { background: var(--bg-secondary); }
   .play-btn {
@@ -137,7 +164,7 @@
     color: var(--bg-primary, #fff); border: none; cursor: pointer; font-size: 0.55rem;
     flex-shrink: 0; display: flex; align-items: center; justify-content: center;
   }
-  .play-btn.playing { background: var(--accent); }
+  .play-btn.playing, .play-btn.loading { background: var(--accent, #4a9eff); }
   .result-info { flex: 1; min-width: 0; }
   .result-name { font-size: 0.77rem; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .result-meta { font-size: 0.67rem; color: var(--text-muted); }

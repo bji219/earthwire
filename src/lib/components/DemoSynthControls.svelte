@@ -21,14 +21,22 @@
     reverbValue = parseFloat((e.target as HTMLInputElement).value);
     synth?.setReverbMix(reverbValue);
   }
+
+  function toggleMute() {
+    if (synth?.active) {
+      synth.stop();
+    } else {
+      synth?.start();
+    }
+  }
 </script>
 
 {#if synth}
   <div class="demo-synth-controls">
-    <span class="label">Demo Synth</span>
+    <span class="title-label">Demo Synth</span>
 
     <label>
-      Wave
+      <span class="label-text">Wave</span>
       <select value={waveform} on:change={handleWaveform}>
         <option value="sawtooth">Saw</option>
         <option value="square">Square</option>
@@ -38,16 +46,18 @@
     </label>
 
     <label>
-      Filter
+      <span class="label-text">Filter</span>
       <input type="range" min="0" max="1" step="0.01" value={filterValue} on:input={handleFilter} />
     </label>
 
     <label>
-      Reverb
+      <span class="label-text">Reverb</span>
       <input type="range" min="0" max="1" step="0.01" value={reverbValue} on:input={handleReverb} />
     </label>
 
-    <span class="status">{synth.active ? '🔊' : '🔇'}</span>
+    <button class="mute-btn" class:muted={!synth.active} on:click={toggleMute}>
+      {synth.active ? '🔊 On' : '🔇 Muted'}
+    </button>
   </div>
 {/if}
 
@@ -56,31 +66,63 @@
     display: flex;
     align-items: center;
     gap: 1rem;
-    padding: 0.75rem 1rem;
-    background: #1e1e1e;
-    border-top: 1px solid #333;
-    color: #fff;
+    padding: 0.625rem 1.5rem;
+    background: var(--bg-input);
+    border-top: 1px solid var(--border-light);
   }
-  .label {
-    font-weight: bold;
-    font-size: 0.85rem;
-    color: #4ecdc4;
+  .title-label {
+    font-family: var(--font-display);
+    font-weight: 400;
+    font-size: 0.9rem;
+    color: var(--text-primary);
   }
   label {
     display: flex;
     align-items: center;
-    gap: 0.25rem;
-    font-size: 0.85rem;
-    color: #aaa;
+    gap: 0.3rem;
+  }
+  .label-text {
+    font-size: 0.7rem;
+    font-weight: 500;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
   }
   select {
-    background: #2a2a2a;
-    color: #fff;
-    border: 1px solid #444;
-    border-radius: 4px;
-    padding: 0.25rem;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 0.3rem 0.4rem;
+    font-family: var(--font-body);
+    font-size: 0.8rem;
   }
-  .status {
+  select:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px var(--accent-bg);
+  }
+  input[type='range'] {
+    accent-color: var(--accent);
+  }
+  .mute-btn {
     margin-left: auto;
+    background: var(--bg-primary);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 0.3rem 0.75rem;
+    cursor: pointer;
+    font-family: var(--font-body);
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+    transition: all 150ms;
+  }
+  .mute-btn:hover {
+    background: var(--bg-tertiary);
+  }
+  .mute-btn.muted {
+    color: var(--text-muted);
+    background: var(--bg-secondary);
   }
 </style>

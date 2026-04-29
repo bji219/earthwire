@@ -1,14 +1,18 @@
 import { SourceRegistry } from './registry.js';
-import { createUsgsSource } from './usgs.js';
-import { createIssSource } from './iss.js';
-import { createEbirdSource } from './ebird.js';
+import { createUsgsSequencerSource } from './usgs-sequencer.js';
+import { createIssSequencerSource } from './iss-sequencer.js';
+import { createEbirdSequencerSource } from './ebird-sequencer.js';
+import { createMbariSequencerSource } from './mbari-sequencer.js';
+import { createSolarSequencerSource } from './solar-sequencer.js';
 
 export function createDefaultRegistry(): SourceRegistry {
-  const registry = new SourceRegistry();
-  registry.registerFactory('usgs-earthquakes', () => createUsgsSource());
-  registry.registerFactory('iss-position', () => createIssSource());
-  registry.registerFactory('ebird-activity', () => createEbirdSource());
-  return registry;
+	const registry = new SourceRegistry();
+	registry.registerFactory('usgs-earthquakes', () => createUsgsSequencerSource());
+	registry.registerFactory('iss-position', () => createIssSequencerSource());
+	registry.registerFactory('ebird-activity', () => createEbirdSequencerSource());
+	registry.registerFactory('mbari-ocean', () => createMbariSequencerSource());
+	registry.registerFactory('solar-wind', () => createSolarSequencerSource());
+	return registry;
 }
 
 export { SourceRegistry } from './registry.js';

@@ -16,7 +16,15 @@ export const GET: RequestHandler = async ({ url }) => {
   const country = url.searchParams.get('country') ?? '';
   const page    = url.searchParams.get('page') ?? '1';
 
-  let q = query;
+  // v3 API requires tagged queries. Prefix each bare word with en: so users
+  // can search by common name. Multi-word: "hawk eagle" → "en:hawk en:eagle".
+  let q: string;
+  if (query.includes(':')) {
+    q = query;
+  } else {
+    const words = query.trim().split(/\s+/).filter(Boolean);
+    q = words.map(w => `en:${w}`).join(' ');
+  }
   if (quality) q += ` q:${quality}`;
   if (country) q += ` cnt:${country}`;
   if (len)     q += ` len:${len}`;
@@ -25,11 +33,11 @@ export const GET: RequestHandler = async ({ url }) => {
 
   try {
     const res = await fetch(`${BASE}?${params}`);
-    if (!res.ok) {
-      const body = await res.json().catch(() => ({}));
-      throw error(res.status, body?.message ?? 'Xeno-canto API error');
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok || body?.error) {
+      throw error(res.ok ? 400 : res.status, body?.message ?? 'Xeno-canto API error');
     }
-    return json(await res.json());
+    return json(body);
   } catch (e: any) {
     if (e?.status) throw e;
     throw error(500, e?.message ?? 'Failed to fetch Xeno-canto');

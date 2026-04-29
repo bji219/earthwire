@@ -3,37 +3,57 @@ import { env } from '$env/dynamic/private';
 import type { RequestHandler } from './$types.js';
 
 const CACHE_TTL = 15 * 60_000;
+const cache = new Map<string, { data: unknown; cachedAt: number }>();
 
-let cachedData: unknown = null;
-let cachedAt = 0;
+const HEADERS = {
+	'X-Earthwire-Source': 'eBird',
+	'X-Earthwire-Attribution': 'Cornell Lab of Ornithology'
+};
 
 export const GET: RequestHandler = async ({ url }) => {
-  const regionCode = url.searchParams.get('region') || 'US';
+	const regionCode = url.searchParams.get('region') || 'US';
+	const back = Math.min(30, Math.max(1, parseInt(url.searchParams.get('back') || '1', 10)));
+	const maxResults = back > 1 ? 200 : 50;
 
-  const now = Date.now();
-  if (cachedData && now - cachedAt < CACHE_TTL) {
-    return json(cachedData, {
-      headers: { 'X-Earthwire-Source': 'eBird', 'X-Earthwire-Attribution': 'Cornell Lab of Ornithology' }
-    });
-  }
+	console.log(`[eBird] request: region=${regionCode} back=${back} maxResults=${maxResults}`);
 
-  const apiKey = env.EBIRD_API_KEY;
-  if (!apiKey) {
-    return json({ error: 'eBird API key not configured' }, { status: 500 });
-  }
+	const cacheKey = `${regionCode}-${back}`;
+	const now = Date.now();
+	const cached = cache.get(cacheKey);
+	if (cached && now - cached.cachedAt < CACHE_TTL) {
+		console.log(`[eBird] cache hit for ${cacheKey}`);
+		return json(cached.data, { headers: HEADERS });
+	}
 
-  const res = await fetch(`https://api.ebird.org/v2/data/obs/${regionCode}/recent?maxResults=50`, {
-    headers: { 'X-eBirdApiToken': apiKey }
-  });
+	const apiKey = env.EBIRD_API_KEY;
+	if (!apiKey) {
+		console.warn('[eBird] API key not configured (EBIRD_API_KEY env var missing)');
+		return json({ error: 'eBird API key not configured' }, { status: 500 });
+	}
 
-  if (!res.ok) {
-    return json({ error: 'eBird API unavailable' }, { status: 502 });
-  }
+	const ebirdUrl = `https://api.ebird.org/v2/data/obs/${regionCode}/recent?maxResults=${maxResults}&back=${back}`;
+	console.log(`[eBird] fetching: ${ebirdUrl}`);
 
-  cachedData = await res.json();
-  cachedAt = now;
+	try {
+		const res = await fetch(ebirdUrl, {
+			headers: { 'X-eBirdApiToken': apiKey }
+		});
 
-  return json(cachedData, {
-    headers: { 'X-Earthwire-Source': 'eBird', 'X-Earthwire-Attribution': 'Cornell Lab of Ornithology' }
-  });
+		console.log(`[eBird] response: status=${res.status}`);
+
+		if (!res.ok) {
+			console.warn(`[eBird] API error: ${res.status} ${res.statusText}`);
+			return json({ error: 'eBird API unavailable' }, { status: 502 });
+		}
+
+		const data = await res.json();
+		const count = Array.isArray(data) ? data.length : 0;
+		console.log(`[eBird] returning ${count} observations`);
+
+		cache.set(cacheKey, { data, cachedAt: now });
+		return json(data, { headers: HEADERS });
+	} catch (err) {
+		console.error('[eBird] fetch error:', err);
+		return json({ error: 'eBird API unavailable' }, { status: 502 });
+	}
 };

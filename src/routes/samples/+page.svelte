@@ -46,12 +46,12 @@
     font-family: var(--font-body);
   }
   .browser-panel {
-    flex: 1; overflow: hidden;
+    flex: 1; min-width: 0; max-width: 55%; overflow: hidden;
     border-right: 1px solid var(--border);
     display: flex; flex-direction: column;
   }
   .kit-panel {
-    width: 300px; flex-shrink: 0; overflow: hidden;
+    flex: 1; min-width: 380px; max-width: 45%; overflow: hidden;
     display: flex; flex-direction: column;
   }
 </style>

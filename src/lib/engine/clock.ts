@@ -27,6 +27,11 @@ export class BpmClock {
       case '1/4': return beat;
       case '1/8': return beat / 2;
       case '1/16': return beat / 4;
+      case '1/32': return beat / 8;
+      case '1/4T': return beat / 1.5;
+      case '1/8T': return beat / 3;
+      case '1/16T': return beat / 6;
+      default: return beat / 4; // fallback to 1/16
     }
   }
 

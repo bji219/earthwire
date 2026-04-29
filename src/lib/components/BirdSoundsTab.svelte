@@ -8,16 +8,16 @@
   const FAMILIES = [
     { name: 'Warblers',     query: 'warbler' },
     { name: 'Thrushes',     query: 'thrush' },
-    { name: 'Raptors',      query: 'hawk eagle' },
-    { name: 'Shorebirds',   query: 'sandpiper plover' },
+    { name: 'Raptors',      query: 'hawk' },
+    { name: 'Shorebirds',   query: 'sandpiper' },
     { name: 'Owls',         query: 'owl' },
     { name: 'Nightingales', query: 'nightingale' },
     { name: 'Finches',      query: 'finch' },
-    { name: 'Ducks & Geese', query: 'duck goose' },
+    { name: 'Ducks & Geese', query: 'duck' },
     { name: 'Woodpeckers',  query: 'woodpecker' },
     { name: 'Hummingbirds', query: 'hummingbird' },
     { name: 'Sparrows',     query: 'sparrow' },
-    { name: 'Crows & Jays', query: 'crow jay raven' },
+    { name: 'Crows & Jays', query: 'crow' },
   ];
 
   let selectedQuery = '';

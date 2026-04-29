@@ -29,3 +29,12 @@ export interface SourceAttribution {
 	license: string;
 	url: string;
 }
+
+export type TimeRangePreset = 'hour' | 'day' | 'week' | 'month';
+
+export interface SequencerState {
+	bufferLength: number;
+	cursor: number;
+	loading: boolean;
+	timeRange: TimeRangePreset;
+}

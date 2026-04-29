@@ -7,6 +7,10 @@ settings:
 importers:
 
   .:
+    dependencies:
+      satellite.js:
+        specifier: ^6.0.2
+        version: 6.0.2
     devDependencies:
       '@sveltejs/adapter-vercel':
         specifier: ^5.0.0
@@ -1262,6 +1266,9 @@ packages:
 
   sander@0.5.1:
     resolution: {integrity: sha512-3lVqBir7WuKDHGrKRDn/1Ye3kwpXaDOMsiRP1wd6wpZW56gJhsbp5RqQpA6JG/P+pkXizygnr1dKR8vzWaVsfA==}
+
+  satellite.js@6.0.2:
+    resolution: {integrity: sha512-XWKxtqVF5xiJ1xAeiYeT/oSSzsukoCLWvk6nO/WFy4un0M3g4djAU9TAtOCqJLtYW9vxx9pkPJ1L9ITOc607GA==}
 
   saxes@6.0.0:
     resolution: {integrity: sha512-xAg7SOnEhrm5zI3puOOKyy1OMcMlIJZYNJY7xLBwSze0UjhPLnWfj2GF2EpT0jmzaJKIWKHLsaSSajf35bcYnA==}
@@ -2691,6 +2698,8 @@ snapshots:
       graceful-fs: 4.2.11
       mkdirp: 0.5.6
       rimraf: 2.7.1
+
+  satellite.js@6.0.2: {}
 
   saxes@6.0.0:
     dependencies:

@@ -27,7 +27,7 @@
   function draw(): void {
     if (!ctx) return;
 
-    ctx.fillStyle = '#1a1a1a';
+    ctx.fillStyle = '#F5F2ED';
     ctx.fillRect(0, 0, width, height);
 
     if (buffer.length < 2) {
@@ -35,7 +35,7 @@
       return;
     }
 
-    ctx.strokeStyle = '#4ecdc4';
+    ctx.strokeStyle = '#1A6B5A';
     ctx.lineWidth = 1.5;
     ctx.beginPath();
 
@@ -55,7 +55,7 @@
     ctx.stroke();
 
     const current = buffer[buffer.length - 1];
-    ctx.fillStyle = '#4ecdc4';
+    ctx.fillStyle = '#1A6B5A';
     ctx.globalAlpha = 0.3;
     ctx.fillRect(width - 4, height - current * height, 4, current * height);
     ctx.globalAlpha = 1;
@@ -68,7 +68,7 @@
 
 <style>
   .signal-meter {
-    border-radius: 4px;
-    border: 1px solid #333;
+    border-radius: 6px;
+    border: 1px solid var(--border, #DDD8CF);
   }
 </style>
