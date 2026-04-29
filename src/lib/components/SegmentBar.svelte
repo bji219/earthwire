@@ -1,9 +1,12 @@
 <script lang="ts">
+  import { createEventDispatcher } from 'svelte';
   import { SLOT_COLORS, DEVICE_LIMITS, formatDuration } from '$lib/kit/types';
   import type { SlotMeta, DeviceMode } from '$lib/kit/types';
 
   export let slots: (SlotMeta | null)[];
   export let deviceMode: DeviceMode;
+
+  const dispatch = createEventDispatcher<{ preview: { index: number } }>();
 
   $: maxSeconds = DEVICE_LIMITS[deviceMode];
   $: usedSeconds = slots.reduce((sum, s) => sum + (s ? s.trimEnd - s.trimStart : 0), 0);
@@ -20,6 +23,10 @@
           class="segment"
           style="width:{pct}%;background:{SLOT_COLORS[i]}"
           title="Slot {i + 1}: {slot.name} ({formatDuration(slot.trimEnd - slot.trimStart)})"
+          role="button"
+          tabindex="0"
+          on:click={() => dispatch('preview', { index: i })}
+          on:keydown={e => e.key === 'Enter' && dispatch('preview', { index: i })}
         ></div>
       {/if}
     {/each}
@@ -41,7 +48,8 @@
     overflow: hidden;
   }
 
-  .segment { height: 100%; flex-shrink: 0; }
+  .segment { height: 100%; flex-shrink: 0; cursor: pointer; }
+  .segment:hover { filter: brightness(1.2); }
 
   .segment-empty {
     flex: 1;

@@ -187,7 +187,7 @@
   </div>
 
   <!-- Segment bar -->
-  <SegmentBar slots={$kit.slots} deviceMode={$kit.deviceMode} />
+  <SegmentBar slots={$kit.slots} deviceMode={$kit.deviceMode} on:preview={e => previewSlot(e.detail.index)} />
 
   <!-- 24 slot rows -->
   <div class="slot-list">
