@@ -1,11 +1,12 @@
 <!-- src/lib/components/KitBuilder.svelte -->
 <script lang="ts">
   import { kit } from '$lib/stores/kit';
+  import { audioPlayer } from '$lib/stores/audio-player';
   import SegmentBar from './SegmentBar.svelte';
   import SlotRow from './SlotRow.svelte';
   import {
-    DEVICE_LIMITS, DEVICE_CHANNELS, DEVICE_BIT_DEPTH,
-    type DeviceMode,
+    DEVICE_LIMITS, DEVICE_CHANNELS, DEVICE_BIT_DEPTH, SLOT_COLORS,
+    type DeviceMode, type SlotMeta,
   } from '$lib/kit/types';
   import { buildOp1Metadata } from '$lib/kit/op1-metadata';
   import { trimBuffer, stitchBuffers } from '$lib/kit/audio-processor';
@@ -38,16 +39,28 @@
     if (e.key === 'Backspace') { e.preventDefault(); kit.clearSlot(activeSlot); }
   }
 
+  function handleFill(e: CustomEvent<{ index: number; name: string; sourceType: SlotMeta['sourceType']; remoteSrc?: string; buffer: AudioBuffer }>) {
+    const { index, name, sourceType, remoteSrc, buffer } = e.detail;
+    kit.setSlot(index, {
+      name,
+      sourceType,
+      remoteSrc,
+      trimStart: 0,
+      trimEnd: buffer.duration,
+      fullDuration: buffer.duration,
+      color: SLOT_COLORS[index],
+    }, buffer);
+  }
+
+  function handleReorder(e: CustomEvent<{ fromIndex: number; toIndex: number }>) {
+    kit.swapSlots(e.detail.fromIndex, e.detail.toIndex);
+  }
+
   function previewSlot(index: number) {
     const buf = kit.getBuffer(index);
     const slot = $kit.slots[index];
     if (!buf || !slot) return;
-    const ctx = new AudioContext();
-    const src = ctx.createBufferSource();
-    src.buffer = buf;
-    src.connect(ctx.destination);
-    src.start(0, slot.trimStart, slot.trimEnd - slot.trimStart);
-    src.onended = () => ctx.close();
+    audioPlayer.play(`slot-${index}`, async () => buf, slot.trimStart, slot.trimEnd);
   }
 
   async function doExport() {
@@ -59,20 +72,33 @@
       const bitDepth    = DEVICE_BIT_DEPTH[mode];
       const sampleRate  = 44100;
 
+      // If total exceeds device limit, trim the last sample(s) to fit
+      let remaining = maxSeconds;
+      const effectiveTrimEnds = $kit.slots.map(slot => {
+        if (!slot) return null;
+        const dur = slot.trimEnd - slot.trimStart;
+        if (remaining <= 0) return slot.trimStart; // zero-length
+        const allowed = Math.min(dur, remaining);
+        remaining -= allowed;
+        return slot.trimStart + allowed;
+      });
+
       // Trim each slot's buffer
       const trimmedBuffers: (AudioBuffer | null)[] = await Promise.all(
         $kit.slots.map(async (slot, i) => {
           if (!slot) return null;
           const buf = kit.getBuffer(i);
           if (!buf) return null;
-          return trimBuffer(buf, slot.trimStart, slot.trimEnd, numChannels, sampleRate);
+          const effectiveEnd = effectiveTrimEnds[i] ?? slot.trimEnd;
+          return trimBuffer(buf, slot.trimStart, effectiveEnd, numChannels, sampleRate);
         })
       );
 
       // Build APPL metadata
       const slotTimings = $kit.slots.map((slot, i) => {
         if (!slot || !trimmedBuffers[i]) return null;
-        return { trimDuration: slot.trimEnd - slot.trimStart };
+        const effectiveEnd = effectiveTrimEnds[i] ?? slot.trimEnd;
+        return { trimDuration: effectiveEnd - slot.trimStart };
       });
       const applJson = buildOp1Metadata({
         kitName: $kit.name,
@@ -169,12 +195,14 @@
       <SlotRow
         index={i}
         {slot}
-        buffer={kit.getBuffer(i)}
+        buffer={$kit.slots[i] ? kit.getBuffer(i) : undefined}
         isActive={activeSlot === i}
-        on:activate={() => activeSlot = i}
+        on:activate={() => { activeSlot = i; previewSlot(i); }}
         on:clear={() => kit.clearSlot(i)}
         on:trim={e => kit.updateSlotTrim(i, e.detail.trimStart, e.detail.trimEnd)}
         on:preview={() => previewSlot(i)}
+        on:fill={handleFill}
+        on:reorder={handleReorder}
       />
     {/each}
   </div>
@@ -186,8 +214,8 @@
     </span>
     <button
       class="export-btn"
-      disabled={overBudget || exporting}
-      title={overBudget ? `Over ${maxSeconds}s budget` : ''}
+      disabled={exporting}
+      title={overBudget ? `Over ${maxSeconds}s — last sample(s) will be clipped to fit` : ''}
       on:click={doExport}
     >
       {exporting ? 'exporting…' : 'export kit →'}
@@ -198,7 +226,7 @@
     <p class="export-error">{exportError}</p>
   {/if}
 
-  <p class="hint">arrow keys navigate · space previews · backspace deletes</p>
+  <p class="hint">arrow keys navigate · click/space plays · backspace deletes · drag to reorder</p>
 </div>
 
 <style>
