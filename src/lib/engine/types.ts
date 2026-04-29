@@ -15,10 +15,10 @@ export interface ChannelConfig {
 	location?: LocationConfig;
 	tickRate?: number; // clock multiplier: 0.25–4.0 (default 1.0 = 100%)
 	normalizer: NormalizerConfig;
+	lfo: LFOConfig | null;
 	smoother: SmootherConfig | null;
 	quantizer: QuantizerConfig | null;
 	threshold: ThresholdConfig | null;
-	lfo: LFOConfig | null;
 	output: OutputConfig;
 }
 
