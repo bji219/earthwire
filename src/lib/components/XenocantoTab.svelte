@@ -17,6 +17,7 @@
   let error = '';
 
   const cache = new Map<string, AudioBuffer>();
+  const pcmCache = new Map<string, { sr: number; nch: number; ch: Float32Array[] }>();
 
   onMount(() => {
     if (initialQuery) { query = initialQuery; search(); }
@@ -29,8 +30,30 @@
   async function fetchAndDecode(rec: any, ctx: AudioContext): Promise<AudioBuffer> {
     if (cache.has(rec.id)) return cache.get(rec.id)!;
     const res = await fetch(getAudioUrl(rec));
-    const buf = await ctx.decodeAudioData(await res.arrayBuffer());
-    cache.set(rec.id, buf);
+    const decoded = await ctx.decodeAudioData(await res.arrayBuffer());
+    const snap = {
+      sr: decoded.sampleRate,
+      nch: decoded.numberOfChannels,
+      ch: Array.from({ length: decoded.numberOfChannels }, (_, i) => new Float32Array(decoded.getChannelData(i))),
+    };
+    const peak = snap.ch[0].reduce((m, v) => Math.max(m, Math.abs(v)), 0);
+    if (peak < 0.0001) {
+      const isBrave = 'brave' in navigator;
+      throw new Error(
+        isBrave
+          ? 'Audio decoded as silence. Brave Shields may be blocking Web Audio — try disabling shields for this site.'
+          : 'Audio decoded as silence — unable to load this sound.'
+      );
+    }
+    pcmCache.set(rec.id, snap);
+    cache.set(rec.id, decoded);
+    return decoded;
+  }
+
+  function buildKitBuffer(id: string): AudioBuffer {
+    const p = pcmCache.get(id)!;
+    const buf = new AudioBuffer({ numberOfChannels: p.nch, length: p.ch[0].length, sampleRate: p.sr });
+    p.ch.forEach((data, i) => buf.getChannelData(i).set(data));
     return buf;
   }
 
@@ -70,18 +93,18 @@
 
   async function addToKit(rec: any) {
     const ctx = audioPlayer.getCtx();
-    const buffer = await fetchAndDecode(rec, ctx);
-    dispatch('add', { name: recName(rec), remoteSrc: `https://xeno-canto.org/${rec.id}`, buffer });
+    await fetchAndDecode(rec, ctx);
+    dispatch('add', { name: recName(rec), remoteSrc: `https://xeno-canto.org/${rec.id}`, buffer: buildKitBuffer(rec.id) });
   }
 
   function handleDragStart(e: DragEvent, rec: any) {
     e.dataTransfer!.effectAllowed = 'copy';
     e.dataTransfer!.setData('application/earthwire-sound', rec.id);
-    if (cache.has(rec.id)) {
-      dragPayload.set({ name: recName(rec), sourceType: 'xeno-canto', remoteSrc: `https://xeno-canto.org/${rec.id}`, buffer: cache.get(rec.id)! });
+    if (pcmCache.has(rec.id)) {
+      dragPayload.set({ name: recName(rec), sourceType: 'xeno-canto', remoteSrc: `https://xeno-canto.org/${rec.id}`, buffer: buildKitBuffer(rec.id) });
     } else {
-      fetchAndDecode(rec, audioPlayer.getCtx()).then(buf =>
-        dragPayload.set({ name: recName(rec), sourceType: 'xeno-canto', remoteSrc: `https://xeno-canto.org/${rec.id}`, buffer: buf })
+      fetchAndDecode(rec, audioPlayer.getCtx()).then(() =>
+        dragPayload.set({ name: recName(rec), sourceType: 'xeno-canto', remoteSrc: `https://xeno-canto.org/${rec.id}`, buffer: buildKitBuffer(rec.id) })
       );
     }
   }

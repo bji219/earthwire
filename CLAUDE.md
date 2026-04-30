@@ -84,13 +84,13 @@ src/
 
     kit/
       types.ts                # SlotMeta, KitMeta, DeviceMode, DEVICE_LIMITS, SLOT_COLORS
-      audio-processor.ts      # extractPeaks, extractPeaksRange, trimBuffer, stitchBuffers
+      audio-processor.ts      # extractPeaks, extractPeaksRange, trimBuffer, normalizeBuffer, cloneAudioBuffer, stitchBuffers
       aiff-encoder.ts         # Encodes Float32Array → valid AIFF binary
       op1-metadata.ts         # Builds OP-1 APPL chunk JSON for drum kit slot timings
 
     stores/
       patch.ts                # Svelte writable — current PatchConfig (channels)
-      kit.ts                  # Svelte writable — KitMeta + AudioBuffer map (24 slots)
+      kit.ts                  # Svelte writable — KitMeta + PCM snapshot map (24 slots; stores Float32Arrays not AudioBuffers)
       clock.ts                # BPM clock store
       audio-player.ts         # Preview player (plays slot audio with trim)
       midi.ts                 # MIDI port store
@@ -214,6 +214,8 @@ This is the main working branch. `main` is the stable base.
 - **SegmentBar click-to-preview**: Clicking a colored segment previews that slot's sound.
 - **Sample browser layout**: Browser panel `max-width: 55%`, kit panel `min-width: 380px / max-width: 45%` — kit is more prominent.
 - **Xeno-canto v3 API**: Upgraded from v2 to v3 endpoint.
+- **Silent export fix**: Freesound and Xeno-canto samples exported as silence when previewed before exporting. Root cause: Chrome/Brave recycle the native memory backing a decoded `AudioBuffer` after a `BufferSourceNode` finishes playing it; subsequent `getChannelData()` calls return zeros. Fixed at two layers: (1) FreesoundTab/XenocantoTab snapshot raw `Float32Array`s immediately at decode time (`pcmCache`), (2) `kit.ts` stores `{ sr, nch, ch: Float32Array[] }` snapshots instead of `AudioBuffer` objects, reconstructing a fresh `new AudioBuffer` on every `getBuffer()` call. `trimBuffer` already used `new AudioBuffer({...})` (pure JS heap) rather than `ctx.createBuffer()` (audio thread pool) — maintain this distinction.
+- **Cross-browser download fixes**: Safari treated `audio/x-aiff` as a streamable media type and truncated the download when `URL.revokeObjectURL` was called before its async download manager had finished reading. Fixed by: (1) using `application/octet-stream` MIME type, (2) appending anchor to `document.body` before `.click()`, (3) revoking the object URL after a 60-second delay. Brave fingerprinting protection (Shields) can zero out Web Audio `getChannelData()` results; this is now detected at add-time and surfaces a Brave-specific error message (`'brave' in navigator`).
 
 ### Known pending / future work
 
@@ -247,7 +249,7 @@ pnpm test                              # All tests
 pnpm test src/lib/nodes/lfo.test.ts    # One file
 ```
 
-Test count as of last update: 115+ tests, all passing.
+Test count as of last update: 126 tests, all passing.
 
 Key test files:
 - `src/lib/nodes/*.test.ts` — all signal nodes

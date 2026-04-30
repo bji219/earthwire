@@ -32,10 +32,28 @@ function saveMeta(meta: KitMeta) {
   try { localStorage.setItem(STORAGE_KEY, JSON.stringify(meta)); } catch {}
 }
 
+type PcmSnapshot = { sr: number; nch: number; ch: Float32Array[] };
+
+function snapshotBuffer(buffer: AudioBuffer): PcmSnapshot {
+  return {
+    sr: buffer.sampleRate,
+    nch: buffer.numberOfChannels,
+    ch: Array.from({ length: buffer.numberOfChannels }, (_, i) =>
+      new Float32Array(buffer.getChannelData(i))
+    ),
+  };
+}
+
+function buildBuffer(snap: PcmSnapshot): AudioBuffer {
+  const buf = new AudioBuffer({ numberOfChannels: snap.nch, length: snap.ch[0].length, sampleRate: snap.sr });
+  snap.ch.forEach((data, i) => buf.getChannelData(i).set(data));
+  return buf;
+}
+
 function createKitStore() {
   const { subscribe, update, set } = writable<KitMeta>(loadMeta());
-  // In-memory AudioBuffer map — not persisted
-  const buffers = new Map<number, AudioBuffer>();
+  // Store raw PCM snapshots — AudioBuffers handed to Web Audio get recycled after playback
+  const pcm = new Map<number, PcmSnapshot>();
 
   function applyUpdate(fn: (kit: KitMeta) => KitMeta) {
     update(kit => {
@@ -49,7 +67,7 @@ function createKitStore() {
     subscribe,
 
     setSlot(index: number, meta: SlotMeta, buffer: AudioBuffer) {
-      buffers.set(index, buffer);
+      pcm.set(index, snapshotBuffer(buffer));
       applyUpdate(kit => {
         const slots = [...kit.slots];
         slots[index] = meta;
@@ -67,7 +85,7 @@ function createKitStore() {
     },
 
     clearSlot(index: number) {
-      buffers.delete(index);
+      pcm.delete(index);
       applyUpdate(kit => {
         const slots = [...kit.slots];
         slots[index] = null;
@@ -76,10 +94,10 @@ function createKitStore() {
     },
 
     swapSlots(a: number, b: number) {
-      const bufA = buffers.get(a);
-      const bufB = buffers.get(b);
-      if (bufA !== undefined) buffers.set(b, bufA); else buffers.delete(b);
-      if (bufB !== undefined) buffers.set(a, bufB); else buffers.delete(a);
+      const bufA = pcm.get(a);
+      const bufB = pcm.get(b);
+      if (bufA !== undefined) pcm.set(b, bufA); else pcm.delete(b);
+      if (bufB !== undefined) pcm.set(a, bufB); else pcm.delete(a);
       applyUpdate(kit => {
         const slots = [...kit.slots] as KitMeta['slots'];
         [slots[a], slots[b]] = [slots[b], slots[a]];
@@ -88,11 +106,12 @@ function createKitStore() {
     },
 
     getBuffer(index: number): AudioBuffer | undefined {
-      return buffers.get(index);
+      const snap = pcm.get(index);
+      return snap ? buildBuffer(snap) : undefined;
     },
 
     setBuffer(index: number, buffer: AudioBuffer) {
-      buffers.set(index, buffer);
+      pcm.set(index, snapshotBuffer(buffer));
     },
 
     setDeviceMode(mode: DeviceMode) {
@@ -104,7 +123,7 @@ function createKitStore() {
     },
 
     reset() {
-      buffers.clear();
+      pcm.clear();
       const fresh = { ...DEFAULT_KIT, slots: Array(24).fill(null) };
       set(fresh);
       saveMeta(fresh);

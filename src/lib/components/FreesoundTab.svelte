@@ -14,7 +14,11 @@
   let loading = false;
   let error = '';
 
+  // Playback cache — Chrome may recycle this buffer's backing memory after playback
   const cache = new Map<number, AudioBuffer>();
+  // PCM snapshot — plain Float32Arrays extracted immediately at decode time, before any playback
+  // These live in JS heap and are never touched by the audio rendering thread
+  const pcmCache = new Map<number, { sr: number; nch: number; ch: Float32Array[] }>();
 
   function getAudioUrl(result: any): string {
     const cdnUrl = result.previews?.['preview-hq-mp3'] ?? result.previews?.['preview-lq-mp3'] ?? '';
@@ -25,8 +29,31 @@
     if (cache.has(result.id)) return cache.get(result.id)!;
     const res = await fetch(getAudioUrl(result));
     if (!res.ok) throw new Error(`Failed to fetch audio: ${res.status}`);
-    const buf = await ctx.decodeAudioData(await res.arrayBuffer());
-    cache.set(result.id, buf);
+    const decoded = await ctx.decodeAudioData(await res.arrayBuffer());
+    const snap = {
+      sr: decoded.sampleRate,
+      nch: decoded.numberOfChannels,
+      ch: Array.from({ length: decoded.numberOfChannels }, (_, i) => new Float32Array(decoded.getChannelData(i))),
+    };
+    // Detect browsers that zero out Web Audio data (e.g. Brave with strict fingerprinting)
+    const peak = snap.ch[0].reduce((m, v) => Math.max(m, Math.abs(v)), 0);
+    if (peak < 0.0001) {
+      const isBrave = 'brave' in navigator;
+      throw new Error(
+        isBrave
+          ? 'Audio decoded as silence. Brave Shields may be blocking Web Audio — try disabling shields for this site.'
+          : 'Audio decoded as silence — unable to load this sound.'
+      );
+    }
+    pcmCache.set(result.id, snap);
+    cache.set(result.id, decoded);
+    return decoded;
+  }
+
+  function buildKitBuffer(id: number): AudioBuffer {
+    const p = pcmCache.get(id)!;
+    const buf = new AudioBuffer({ numberOfChannels: p.nch, length: p.ch[0].length, sampleRate: p.sr });
+    p.ch.forEach((data, i) => buf.getChannelData(i).set(data));
     return buf;
   }
 
@@ -62,18 +89,18 @@
 
   async function addToKit(result: any) {
     const ctx = audioPlayer.getCtx();
-    const buffer = await fetchAndDecode(result, ctx);
-    dispatch('add', { name: result.name, previewUrl: result.url, buffer });
+    await fetchAndDecode(result, ctx); // ensures pcmCache is populated
+    dispatch('add', { name: result.name, previewUrl: result.url, buffer: buildKitBuffer(result.id) });
   }
 
   function handleDragStart(e: DragEvent, result: any) {
     e.dataTransfer!.effectAllowed = 'copy';
     e.dataTransfer!.setData('application/earthwire-sound', String(result.id));
-    if (cache.has(result.id)) {
-      dragPayload.set({ name: result.name, sourceType: 'freesound', remoteSrc: result.url, buffer: cache.get(result.id)! });
+    if (pcmCache.has(result.id)) {
+      dragPayload.set({ name: result.name, sourceType: 'freesound', remoteSrc: result.url, buffer: buildKitBuffer(result.id) });
     } else {
-      fetchAndDecode(result, audioPlayer.getCtx()).then(buf =>
-        dragPayload.set({ name: result.name, sourceType: 'freesound', remoteSrc: result.url, buffer: buf })
+      fetchAndDecode(result, audioPlayer.getCtx()).then(() =>
+        dragPayload.set({ name: result.name, sourceType: 'freesound', remoteSrc: result.url, buffer: buildKitBuffer(result.id) })
       );
     }
   }

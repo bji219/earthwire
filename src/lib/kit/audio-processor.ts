@@ -184,54 +184,105 @@ function decodeAiff(buffer: ArrayBuffer, ctx: AudioContext): AudioBuffer {
  * Trim an AudioBuffer to [trimStart, trimEnd] seconds, downmix to `numChannels`,
  * and resample to `targetSampleRate`.
  *
- * Two-pass approach to avoid unreliable cross-rate resampling in OfflineAudioContext:
- *   1. Trim + downmix at the source's native sample rate.
- *   2. If the rate differs from the target, manually linear-interpolate to targetSampleRate.
+ * Pure JS implementation using getChannelData() with linear interpolation —
+ * avoids OfflineAudioContext which produces silence for remotely-decoded MP3 buffers
+ * when the browser's AudioContext sample rate (typically 48 kHz on macOS) differs
+ * from the export target rate (44100 Hz).
  */
-export async function trimBuffer(
+export function trimBuffer(
   source: AudioBuffer,
   trimStart: number,
   trimEnd: number,
   numChannels: number,
   targetSampleRate: number
-): Promise<AudioBuffer> {
+): AudioBuffer {
   const duration = trimEnd - trimStart;
   if (duration <= 0) throw new Error('Trim duration must be > 0');
 
   const sourceSR = source.sampleRate;
-  const sourceFrames = Math.round(duration * sourceSR);
-
-  // Pass 1: trim + channel downmix at the source's own sample rate
-  const trimCtx = new OfflineAudioContext(numChannels, Math.max(1, sourceFrames), sourceSR);
-  const trimSrc = trimCtx.createBufferSource();
-  trimSrc.buffer = source;
-  trimSrc.connect(trimCtx.destination);
-  trimSrc.start(0, trimStart, duration);
-  const trimmed = await trimCtx.startRendering();
-
-  if (sourceSR === targetSampleRate) return trimmed;
-
-  // Pass 2: linear-interpolation resample to targetSampleRate
-  const targetFrames = Math.round(duration * targetSampleRate);
+  const startFrame = Math.round(trimStart * sourceSR);
+  const targetFrames = Math.max(1, Math.round(duration * targetSampleRate));
+  // ratio: how many source frames to advance per output frame
   const ratio = sourceSR / targetSampleRate;
+
   const output = new AudioBuffer({
     numberOfChannels: numChannels,
-    length: Math.max(1, targetFrames),
+    length: targetFrames,
     sampleRate: targetSampleRate,
   });
-  for (let ch = 0; ch < numChannels; ch++) {
-    const src = trimmed.getChannelData(ch);
-    const dst = output.getChannelData(ch);
+
+  const stereoToMono = numChannels === 1 && source.numberOfChannels >= 2;
+
+  if (stereoToMono) {
+    const srcL = source.getChannelData(0);
+    const srcR = source.getChannelData(1);
+    const dst = output.getChannelData(0);
     for (let i = 0; i < targetFrames; i++) {
-      const pos = i * ratio;
+      const pos = startFrame + i * ratio;
       const idx = Math.floor(pos);
       const frac = pos - idx;
-      const a = src[idx] ?? 0;
-      const b = src[idx + 1] ?? 0;
-      dst[i] = a + (b - a) * frac;
+      const L = (srcL[idx] ?? 0) + ((srcL[idx + 1] ?? 0) - (srcL[idx] ?? 0)) * frac;
+      const R = (srcR[idx] ?? 0) + ((srcR[idx + 1] ?? 0) - (srcR[idx] ?? 0)) * frac;
+      dst[i] = (L + R) * 0.5;
+    }
+  } else {
+    for (let ch = 0; ch < numChannels; ch++) {
+      const srcCh = ch < source.numberOfChannels ? ch : 0;
+      const src = source.getChannelData(srcCh);
+      const dst = output.getChannelData(ch);
+      for (let i = 0; i < targetFrames; i++) {
+        const pos = startFrame + i * ratio;
+        const idx = Math.floor(pos);
+        const frac = pos - idx;
+        dst[i] = (src[idx] ?? 0) + ((src[idx + 1] ?? 0) - (src[idx] ?? 0)) * frac;
+      }
     }
   }
+
   return output;
+}
+
+/**
+ * Peak-normalize an AudioBuffer in place so the loudest sample hits targetPeak.
+ * Each slot in the kit may come from sources at very different amplitude levels
+ * (e.g. Freesound previews peak around −15 dBFS vs local files at 0 dBFS).
+ * This ensures all slots are perceptually consistent in the exported kit.
+ */
+export function normalizeBuffer(buf: AudioBuffer, targetPeak = 0.9): void {
+  let peak = 0;
+  for (let ch = 0; ch < buf.numberOfChannels; ch++) {
+    const data = buf.getChannelData(ch);
+    for (let i = 0; i < data.length; i++) {
+      const abs = Math.abs(data[i]);
+      if (abs > peak) peak = abs;
+    }
+  }
+  if (peak < 0.0001) return; // silence — don't amplify noise floor
+  const gain = targetPeak / peak;
+  for (let ch = 0; ch < buf.numberOfChannels; ch++) {
+    const data = buf.getChannelData(ch);
+    for (let i = 0; i < data.length; i++) {
+      data[i] *= gain;
+    }
+  }
+}
+
+/**
+ * Clone an AudioBuffer into a fresh, JS-heap-owned copy.
+ * Chrome's decodeAudioData may back MP3/OGG buffers with native memory that
+ * gets recycled after the audio subsystem drops the reference. Cloning
+ * immediately after decode guarantees getChannelData() stays valid indefinitely.
+ */
+export function cloneAudioBuffer(source: AudioBuffer): AudioBuffer {
+  const clone = new AudioBuffer({
+    numberOfChannels: source.numberOfChannels,
+    length: source.length,
+    sampleRate: source.sampleRate,
+  });
+  for (let ch = 0; ch < source.numberOfChannels; ch++) {
+    clone.getChannelData(ch).set(source.getChannelData(ch));
+  }
+  return clone;
 }
 
 /**
