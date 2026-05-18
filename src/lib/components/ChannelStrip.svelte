@@ -1,7 +1,7 @@
 <script lang="ts">
-  import type { ChannelConfig } from '$lib/engine/types.js';
+  import type { ChannelConfig, LfoSourceConfig, LFOShape } from '$lib/engine/types.js';
   import type { TimeRangePreset } from '$lib/sources/types.js';
-  import type { SmootherMode, LFOShape } from '$lib/nodes/types.js';
+  import type { SmootherMode } from '$lib/nodes/types.js';
   import { patch } from '$lib/stores/patch.js';
   import { createEventDispatcher } from 'svelte';
 
@@ -15,7 +15,8 @@
     { id: 'iss-position', name: 'ISS Position', icon: '🔭' },
     { id: 'ebird-activity', name: 'Bird Activity', icon: '🐦' },
     { id: 'mbari-ocean', name: 'MBARI Ocean', icon: '🌊' },
-    { id: 'solar-wind', name: 'Solar Wind', icon: '☀️' }
+    { id: 'solar-wind', name: 'Solar Wind', icon: '☀️' },
+    { id: 'lfo', name: 'LFO', icon: '〜' }
   ];
 
   const SOURCE_INFO: Record<string, { url: string; description: string }> = {
@@ -82,8 +83,12 @@
 
   function handleSourceChange(e: Event) {
     const sourceId = (e.target as HTMLSelectElement).value;
+    if (sourceId === 'lfo') {
+      updateChannel({ sourceId, fieldId: 'lfo', location: undefined, lfoConfig: { shape: 'sine', rate: 1 } });
+      return;
+    }
     const fields = SOURCE_FIELDS[sourceId];
-    updateChannel({ sourceId, fieldId: fields?.[0]?.id ?? '', location: undefined });
+    updateChannel({ sourceId, fieldId: fields?.[0]?.id ?? '', location: undefined, lfoConfig: undefined });
   }
 
   function handleRegionChange(e: Event) {
@@ -121,31 +126,20 @@
     updateChannel({ smoother: { mode, amount: channel.smoother?.amount ?? 0 } });
   }
 
-  function toggleLFO() {
-    updateChannel({
-      lfo: channel.lfo ? null : { shape: 'sine', rate: 0.5, depth: 0.5 }
-    });
-  }
-
-  function handleLFOShape(e: Event) {
+  function handleLfoSourceShape(e: Event) {
     const shape = (e.target as HTMLSelectElement).value as LFOShape;
-    updateChannel({ lfo: { ...channel.lfo!, shape } });
+    updateChannel({ lfoConfig: { ...channel.lfoConfig!, shape } });
   }
 
-  function handleLFORate(e: Event) {
+  function handleLfoSourceRate(e: Event) {
     const rate = parseFloat((e.target as HTMLInputElement).value);
-    updateChannel({ lfo: { ...channel.lfo!, rate } });
+    updateChannel({ lfoConfig: { ...channel.lfoConfig!, rate } });
   }
 
-  function handleLFODepth(e: Event) {
-    const depth = parseFloat((e.target as HTMLInputElement).value);
-    updateChannel({ lfo: { ...channel.lfo!, depth } });
-  }
-
-  $: lfoRateDisplay = channel.lfo
-    ? channel.lfo.rate < 1
-      ? `${(channel.lfo.rate * 1000).toFixed(0)}ms`
-      : `${channel.lfo.rate.toFixed(2)}Hz`
+  $: lfoRateDisplay = channel.lfoConfig
+    ? channel.lfoConfig.rate < 1
+      ? `${(channel.lfoConfig.rate * 1000).toFixed(0)}ms`
+      : `${channel.lfoConfig.rate.toFixed(2)}Hz`
     : '';
 
   function handleTickRate(e: Event) {
@@ -237,18 +231,40 @@
       <svg width="14" height="14" viewBox="0 0 14 14"><circle cx="7" cy="7" r="6" fill="none" stroke="currentColor" stroke-width="1.2"/><text x="7" y="10.5" text-anchor="middle" font-size="9" font-weight="600" fill="currentColor">i</text></svg>
     </a>
 
-    <select value={channel.fieldId} on:change={handleFieldChange}>
-      {#each SOURCE_FIELDS[channel.sourceId] ?? [] as field}
-        <option value={field.id}>{field.name}</option>
-      {/each}
-    </select>
+    {#if channel.sourceId !== 'lfo'}
+      <select value={channel.fieldId} on:change={handleFieldChange}>
+        {#each SOURCE_FIELDS[channel.sourceId] ?? [] as field}
+          <option value={field.id}>{field.name}</option>
+        {/each}
+      </select>
 
-    <select value={channel.timeRange ?? 'day'} on:change={handleTimeRangeChange}>
-      <option value="hour">1 Hour</option>
-      <option value="day">1 Day</option>
-      <option value="week">1 Week</option>
-      <option value="month">1 Month</option>
-    </select>
+      <select value={channel.timeRange ?? 'day'} on:change={handleTimeRangeChange}>
+        <option value="hour">1 Hour</option>
+        <option value="day">1 Day</option>
+        <option value="week">1 Week</option>
+        <option value="month">1 Month</option>
+      </select>
+    {/if}
+
+    {#if channel.sourceId === 'lfo' && channel.lfoConfig}
+      <select class="lfo-select" value={channel.lfoConfig.shape} on:change={handleLfoSourceShape}>
+        <option value="sine">Sine</option>
+        <option value="triangle">Tri</option>
+        <option value="square">Sq</option>
+        <option value="saw">Saw↑</option>
+        <option value="rsaw">Saw↓</option>
+      </select>
+      <input
+        type="range"
+        min="0.01"
+        max="20"
+        step="0.01"
+        value={channel.lfoConfig.rate}
+        on:input={handleLfoSourceRate}
+        title="Rate: {lfoRateDisplay}"
+      />
+      <span class="rate-label">{lfoRateDisplay}</span>
+    {/if}
 
     {#if channel.sourceId === 'ebird-activity'}
       <select value={channel.location?.region ?? 'US'} on:change={handleRegionChange}>
@@ -294,47 +310,6 @@
         <option value="manual">Manual</option>
       </select>
     </label>
-
-    <div class="lfo-group">
-      <button
-        class="lfo-toggle"
-        class:active={!!channel.lfo}
-        on:click={toggleLFO}
-        title="Low Frequency Oscillator — adds autonomous movement to the signal"
-      >LFO</button>
-
-      {#if channel.lfo}
-        <select class="lfo-select" value={channel.lfo.shape} on:change={handleLFOShape}>
-          <option value="sine">Sine</option>
-          <option value="triangle">Tri</option>
-          <option value="square">Sq</option>
-          <option value="saw">Saw↑</option>
-          <option value="rsaw">Saw↓</option>
-        </select>
-
-        <input
-          type="range"
-          min="0.01"
-          max="10"
-          step="0.01"
-          value={channel.lfo.rate}
-          on:input={handleLFORate}
-          title="Rate"
-        />
-        <span class="rate-label">{lfoRateDisplay}</span>
-
-        <input
-          type="range"
-          min="0"
-          max="1"
-          step="0.01"
-          value={channel.lfo.depth}
-          on:input={handleLFODepth}
-          title="Depth"
-        />
-        <span class="rate-label">{(channel.lfo.depth * 100).toFixed(0)}%</span>
-      {/if}
-    </div>
 
     <label>
       <span class="label-text">Smooth</span>
@@ -561,35 +536,6 @@
   .loc-clear-btn:hover {
     color: var(--danger);
     border-color: var(--danger);
-  }
-  .lfo-group {
-    display: flex;
-    align-items: center;
-    gap: 0.4rem;
-  }
-  .lfo-toggle {
-    font-family: var(--font-mono);
-    font-size: 0.65rem;
-    font-weight: 600;
-    letter-spacing: 0.05em;
-    text-transform: uppercase;
-    padding: 0.2rem 0.4rem;
-    background: var(--bg-primary);
-    border: 1px solid var(--border);
-    border-radius: 4px;
-    color: var(--text-muted);
-    cursor: pointer;
-    transition: all 150ms;
-    white-space: nowrap;
-  }
-  .lfo-toggle:hover {
-    color: var(--accent);
-    border-color: var(--accent-light);
-  }
-  .lfo-toggle.active {
-    background: var(--accent-bg);
-    border-color: var(--accent);
-    color: var(--accent);
   }
   .lfo-select {
     font-size: 0.75rem;

@@ -8,7 +8,7 @@ export interface LFO {
   reset(): void;
 }
 
-function shapeValue(shape: LFOShape, phase: number): number {
+export function shapeValue(shape: LFOShape, phase: number): number {
   switch (shape) {
     case 'sine':     return Math.sin(phase * Math.PI * 2) * 0.5 + 0.5;
     case 'triangle': return phase < 0.5 ? phase * 2 : 2 - phase * 2;

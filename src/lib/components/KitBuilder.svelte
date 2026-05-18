@@ -5,11 +5,11 @@
   import SegmentBar from './SegmentBar.svelte';
   import SlotRow from './SlotRow.svelte';
   import {
-    DEVICE_LIMITS, DEVICE_CHANNELS, DEVICE_BIT_DEPTH, SLOT_COLORS,
+    DEVICE_LIMITS, DEVICE_CHANNELS, SLOT_COLORS,
     type DeviceMode, type SlotMeta,
   } from '$lib/kit/types';
   import { buildOp1Metadata } from '$lib/kit/op1-metadata';
-  import { trimBuffer, stitchBuffers, normalizeBuffer } from '$lib/kit/audio-processor';
+  import { trimBuffer, stitchBuffers, normalizeBuffer, appendSilence } from '$lib/kit/audio-processor';
   import { encodeAiff } from '$lib/kit/aiff-encoder';
 
   const deviceModes: [DeviceMode, string, string][] = [
@@ -71,11 +71,12 @@
     try {
       const mode = $kit.deviceMode;
       const numChannels = DEVICE_CHANNELS[mode];
-      const bitDepth    = DEVICE_BIT_DEPTH[mode];
       const sampleRate  = 44100;
 
-      // If total exceeds device limit, trim the last sample(s) to fit
-      let remaining = maxSeconds;
+      // Reserve 1 frame per empty slot so each can claim a unique 1-frame
+      // silence region without pushing the scaled positions past OP1_MAX.
+      const emptyCount = $kit.slots.filter(s => !s).length;
+      let remaining = maxSeconds - emptyCount / sampleRate;
       const effectiveTrimEnds = $kit.slots.map(slot => {
         if (!slot) return null;
         const dur = slot.trimEnd - slot.trimStart;
@@ -118,14 +119,18 @@
         sampleRate,
       });
 
-      // Stitch all trimmed buffers into one float array
-      const stitched = stitchBuffers(trimmedBuffers, numChannels);
+      // Stitch all trimmed buffers, then append 1 frame of silence per empty
+      // slot so every slot in the APPL metadata can have a unique start<end.
+      const stitched = appendSilence(
+        stitchBuffers(trimmedBuffers, numChannels),
+        emptyCount,
+        numChannels
+      );
 
       // Encode as AIFF
       const aiffBytes = encodeAiff({
         sampleRate,
         numChannels,
-        bitDepth,
         samples: stitched,
         applJson,
       });

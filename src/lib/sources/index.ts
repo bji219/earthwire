@@ -4,6 +4,7 @@ import { createIssSequencerSource } from './iss-sequencer.js';
 import { createEbirdSequencerSource } from './ebird-sequencer.js';
 import { createMbariSequencerSource } from './mbari-sequencer.js';
 import { createSolarSequencerSource } from './solar-sequencer.js';
+import { lfoSource } from './lfo-source.js';
 
 export function createDefaultRegistry(): SourceRegistry {
 	const registry = new SourceRegistry();
@@ -12,6 +13,7 @@ export function createDefaultRegistry(): SourceRegistry {
 	registry.registerFactory('ebird-activity', () => createEbirdSequencerSource());
 	registry.registerFactory('mbari-ocean', () => createMbariSequencerSource());
 	registry.registerFactory('solar-wind', () => createSolarSequencerSource());
+	registry.registerFactory('lfo', () => lfoSource);
 	return registry;
 }
 

@@ -216,6 +216,9 @@ This is the main working branch. `main` is the stable base.
 - **Xeno-canto v3 API**: Upgraded from v2 to v3 endpoint.
 - **Silent export fix**: Freesound and Xeno-canto samples exported as silence when previewed before exporting. Root cause: Chrome/Brave recycle the native memory backing a decoded `AudioBuffer` after a `BufferSourceNode` finishes playing it; subsequent `getChannelData()` calls return zeros. Fixed at two layers: (1) FreesoundTab/XenocantoTab snapshot raw `Float32Array`s immediately at decode time (`pcmCache`), (2) `kit.ts` stores `{ sr, nch, ch: Float32Array[] }` snapshots instead of `AudioBuffer` objects, reconstructing a fresh `new AudioBuffer` on every `getBuffer()` call. `trimBuffer` already used `new AudioBuffer({...})` (pure JS heap) rather than `ctx.createBuffer()` (audio thread pool) — maintain this distinction.
 - **Cross-browser download fixes**: Safari treated `audio/x-aiff` as a streamable media type and truncated the download when `URL.revokeObjectURL` was called before its async download manager had finished reading. Fixed by: (1) using `application/octet-stream` MIME type, (2) appending anchor to `document.body` before `.click()`, (3) revoking the object URL after a 60-second delay. Brave fingerprinting protection (Shields) can zero out Web Audio `getChannelData()` results; this is now detected at add-time and surfaces a Brave-specific error message (`'brave' in navigator`).
+- **OP-1 Field AIFF export**: Full AIFC sowt 16-bit format with FVER chunk, 64-byte AIFC COMM, 4100-byte APPL (4096-byte JSON block padded with spaces, newline after closing `}`), scaled fixed-point start/end positions (`0x7FFFFFFE` = full device window), all 24 slots always have `start < end` (empty slots get unique 1-frame silence regions appended to SSND). Metadata values (`fx_params`, `lfo_params`, `fx_type`, `lfo_type`, `playmode`, `octave`, `dyna_env`) matched against confirmed-working hardware-generated kits. Audio encoded as 16-bit little-endian (sowt) via `aiff-encoder.ts`.
+- **Landing page**: Two CTAs — "Start Listening" (live engine) and "Build a Kit →" (`/samples`). Waveform decoration removed.
+- **Site footer**: Creator links (GitHub, idw3d.com, Etsy) in `src/routes/+layout.svelte` — renders on all pages.
 
 ### Known pending / future work
 
@@ -249,7 +252,7 @@ pnpm test                              # All tests
 pnpm test src/lib/nodes/lfo.test.ts    # One file
 ```
 
-Test count as of last update: 126 tests, all passing.
+Test count as of last update: 131 tests, all passing.
 
 Key test files:
 - `src/lib/nodes/*.test.ts` — all signal nodes

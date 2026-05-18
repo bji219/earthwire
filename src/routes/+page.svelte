@@ -113,7 +113,7 @@
       fieldId: 'magnitude',
       timeRange: 'day',
       normalizer: { mode: 'auto' },
-      lfo: null,
+
       smoother: { amount: 0.3 },
       quantizer: null,
       threshold: null,
@@ -135,7 +135,7 @@
       fieldId: 'magnitude',
       timeRange: 'day',
       normalizer: { mode: 'auto' },
-      lfo: null,
+
       smoother: { amount: 0.3 },
       quantizer: null,
       threshold: null,

@@ -1,5 +1,7 @@
-import type { NormalizerConfig, SmootherConfig, QuantizerConfig, ThresholdConfig, LFOConfig } from '../nodes/types.js';
+import type { NormalizerConfig, SmootherConfig, QuantizerConfig, ThresholdConfig, LFOShape } from '../nodes/types.js';
 import type { TimeRangePreset } from '../sources/types.js';
+
+export type { LFOShape };
 
 export interface LocationConfig {
 	lat: number;
@@ -8,14 +10,19 @@ export interface LocationConfig {
 	region?: string;
 }
 
+export interface LfoSourceConfig {
+	shape: LFOShape;
+	rate: number; // Hz
+}
+
 export interface ChannelConfig {
 	sourceId: string;
 	fieldId: string;
 	timeRange?: TimeRangePreset;
 	location?: LocationConfig;
 	tickRate?: number; // clock multiplier: 0.25–4.0 (default 1.0 = 100%)
+	lfoConfig?: LfoSourceConfig; // only used when sourceId === 'lfo'
 	normalizer: NormalizerConfig;
-	lfo: LFOConfig | null;
 	smoother: SmootherConfig | null;
 	quantizer: QuantizerConfig | null;
 	threshold: ThresholdConfig | null;

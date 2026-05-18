@@ -286,6 +286,22 @@ export function cloneAudioBuffer(source: AudioBuffer): AudioBuffer {
 }
 
 /**
+ * Append `extraFrames` of silence (zeros) to an interleaved sample array.
+ * Used to give every empty kit slot a unique 1-frame silence region in the
+ * exported AIFF — OP-1 Field firmware rejects kits with any zero-duration slot.
+ */
+export function appendSilence(
+  samples: Float32Array,
+  extraFrames: number,
+  numChannels: number
+): Float32Array {
+  if (extraFrames <= 0) return samples;
+  const out = new Float32Array(samples.length + extraFrames * numChannels);
+  out.set(samples);
+  return out;
+}
+
+/**
  * Stitch an array of AudioBuffers into one interleaved Float32Array.
  * Empty slots (null) contribute silence for 0 frames (skipped).
  */

@@ -10,7 +10,6 @@
     isChromium = !!(navigator as any).userAgentData?.brands?.some(
       (b: any) => b.brand === 'Chromium'
     ) || /Chrome/.test(navigator.userAgent);
-    // Stagger entrance
     requestAnimationFrame(() => { visible = true; });
   });
 </script>
@@ -24,11 +23,17 @@
     <p class="description">
       Earthquakes, the ISS, ocean sensors, bird migrations — transformed into
       MIDI signals for your DAW, synth, or modular rig.
+      Or build OP-1 Field drum kits from Freesound and Xeno-canto recordings.
     </p>
 
-    <button class="try-it" on:click={() => dispatch('start')}>
-      Start Listening
-    </button>
+    <div class="cta-row">
+      <button class="cta-primary" on:click={() => dispatch('start')}>
+        Start Listening
+      </button>
+      <a class="cta-secondary" href="/samples">
+        Build a Kit →
+      </a>
+    </div>
 
     {#if !isChromium}
       <p class="browser-note">
@@ -36,14 +41,6 @@
         use Chrome, Edge, Arc, or Brave.
       </p>
     {/if}
-  </div>
-
-  <div class="hero-decoration">
-    <svg viewBox="0 0 400 200" class="wave-svg" aria-hidden="true">
-      <path d="M0,100 C50,60 100,140 150,100 C200,60 250,140 300,100 C350,60 400,140 400,100" fill="none" stroke="var(--accent)" stroke-width="1.5" opacity="0.3"/>
-      <path d="M0,110 C60,70 120,150 180,110 C240,70 300,150 360,110 L400,110" fill="none" stroke="var(--accent-light)" stroke-width="1" opacity="0.2"/>
-      <path d="M0,90 C40,50 80,130 120,90 C160,50 200,130 240,90 C280,50 320,130 360,90 L400,90" fill="none" stroke="var(--accent)" stroke-width="1" opacity="0.15"/>
-    </svg>
   </div>
 </div>
 
@@ -57,23 +54,15 @@
     padding: 2rem;
     text-align: center;
     background: var(--bg-primary);
-    position: relative;
-    overflow: hidden;
     opacity: 0;
     transition: opacity 600ms ease;
   }
-  .hero.visible {
-    opacity: 1;
-  }
+  .hero.visible { opacity: 1; }
   .hero-content {
-    position: relative;
-    z-index: 1;
     transform: translateY(10px);
     transition: transform 600ms ease;
   }
-  .hero.visible .hero-content {
-    transform: translateY(0);
-  }
+  .hero.visible .hero-content { transform: translateY(0); }
   .overline {
     font-family: var(--font-mono);
     font-size: 0.75rem;
@@ -99,48 +88,55 @@
   }
   .description {
     color: var(--text-muted);
-    max-width: 440px;
+    max-width: 460px;
     line-height: 1.7;
     margin: 0 auto 2.5rem;
     font-size: 0.95rem;
   }
-  .try-it {
+  .cta-row {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+  .cta-primary, .cta-secondary {
     padding: 0.875rem 2.5rem;
     font-size: 1rem;
     font-family: var(--font-body);
     font-weight: 600;
+    border-radius: 24px;
+    cursor: pointer;
+    letter-spacing: 0.02em;
+    transition: transform 200ms, box-shadow 200ms, background 200ms, border-color 200ms;
+    text-decoration: none;
+    display: inline-block;
+  }
+  .cta-primary {
     background: var(--accent);
     color: #fff;
     border: none;
-    border-radius: 24px;
-    cursor: pointer;
-    transition: transform 200ms, box-shadow 200ms, background 200ms;
-    letter-spacing: 0.02em;
   }
-  .try-it:hover {
+  .cta-primary:hover {
     transform: translateY(-1px);
     background: var(--accent-light);
     box-shadow: 0 8px 24px rgba(26, 107, 90, 0.2);
   }
-  .try-it:active {
-    transform: translateY(0);
+  .cta-secondary {
+    background: transparent;
+    color: var(--accent);
+    border: 1.5px solid var(--accent);
   }
+  .cta-secondary:hover {
+    transform: translateY(-1px);
+    background: var(--accent);
+    color: #fff;
+    box-shadow: 0 8px 24px rgba(26, 107, 90, 0.2);
+  }
+  .cta-primary:active, .cta-secondary:active { transform: translateY(0); }
   .browser-note {
     margin-top: 1.5rem;
     font-size: 0.8rem;
     color: var(--text-muted);
     max-width: 400px;
-  }
-  .hero-decoration {
-    position: absolute;
-    bottom: 10%;
-    left: 0;
-    right: 0;
-    pointer-events: none;
-    opacity: 0.6;
-  }
-  .wave-svg {
-    width: 100%;
-    height: auto;
   }
 </style>

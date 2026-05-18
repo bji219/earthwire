@@ -7,6 +7,7 @@ import type { DemoSynth } from '../outputs/demo-synth.js';
 import type { MidiOutput } from '../outputs/midi.js';
 import type { CvOutput } from '../outputs/cv-output.js';
 import { SequencerSource } from '../sources/sequencer-source.js';
+import { shapeValue } from '../nodes/lfo.js';
 import { log } from '../util/logger.js';
 
 export type SignalCallback = (
@@ -65,7 +66,7 @@ export class ChannelWiringManager {
 			while (this.wires.length > channels.length) {
 				const wire = this.wires.pop()!;
 				wire.unsubscribe?.();
-				this.registry.release(wire.sourceId);
+				if (wire.sourceId !== 'lfo') this.registry.release(wire.sourceId);
 			}
 
 			// Update or create wires
@@ -103,7 +104,7 @@ export class ChannelWiringManager {
 				if (existing) {
 					existing.unsubscribe?.();
 					this.onSourceReleased?.(existing.sourceId);
-					this.registry.release(existing.sourceId);
+					if (existing.sourceId !== 'lfo') this.registry.release(existing.sourceId);
 				}
 
 				// Create new wire
@@ -132,10 +133,36 @@ export class ChannelWiringManager {
 
 	private async connectWire(index: number, wire: ChannelWire, config?: ChannelConfig): Promise<void> {
 		const gen = wire.generation;
-		let source: EarthwireSource;
 
 		log.wiring(`connectWire[${index}]: acquiring source=${wire.sourceId} field=${wire.fieldId}`);
 
+		// LFO source: bypass registry — run a per-channel setInterval timer
+		if (wire.sourceId === 'lfo') {
+			const lfoConfig = config?.lfoConfig ?? { shape: 'sine' as const, rate: 1 };
+			// Update at ~60 fps; for rates above 15 Hz use at least 4 samples/cycle
+			const intervalMs = Math.max(16, Math.round(1000 / (lfoConfig.rate * 8)));
+			let phase = 0;
+			let lastTick = Date.now();
+
+			const timer = setInterval(() => {
+				const now = Date.now();
+				const dt = (now - lastTick) / 1000;
+				lastTick = now;
+				phase = (phase + dt * lfoConfig.rate) % 1;
+				const rawValue = shapeValue(lfoConfig.shape, phase);
+
+				const channelConfig = this.engine.getChannelConfig(index);
+				if (!channelConfig) return;
+				const output = this.engine.processValue(index, rawValue);
+				this.dispatchOutput(index, channelConfig.output, output);
+				this.onSignal?.(index, rawValue, output, channelConfig);
+			}, intervalMs);
+
+			wire.unsubscribe = () => clearInterval(timer);
+			return;
+		}
+
+		let source: EarthwireSource;
 		try {
 			source = await this.registry.acquire(wire.sourceId);
 		} catch (err) {
@@ -201,7 +228,7 @@ export class ChannelWiringManager {
 		this.panic();
 		for (const wire of this.wires) {
 			wire.unsubscribe?.();
-			this.registry.release(wire.sourceId);
+			if (wire.sourceId !== 'lfo') this.registry.release(wire.sourceId);
 		}
 		this.wires = [];
 	}

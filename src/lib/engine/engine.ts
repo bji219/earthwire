@@ -2,13 +2,11 @@ import { createNormalizer, type Normalizer } from '../nodes/normalizer.js';
 import { createSmoother, type Smoother } from '../nodes/smoother.js';
 import { createQuantizer, type Quantizer } from '../nodes/quantizer.js';
 import { createThreshold, type Threshold } from '../nodes/threshold.js';
-import { createLFO, type LFO } from '../nodes/lfo.js';
 import type { ChannelConfig, ChannelOutput } from './types.js';
 
 interface ChannelState {
   config: ChannelConfig;
   normalizer: Normalizer;
-  lfo: LFO | null;
   smoother: Smoother | null;
   quantizer: Quantizer | null;
   threshold: Threshold | null;
@@ -25,7 +23,6 @@ export class EarthwireEngine {
     this.channels.push({
       config,
       normalizer: createNormalizer(config.normalizer),
-      lfo:       config.lfo       ? createLFO(config.lfo)             : null,
       smoother:  config.smoother  ? createSmoother(config.smoother)   : null,
       quantizer: config.quantizer ? createQuantizer(config.quantizer) : null,
       threshold: config.threshold ? createThreshold(config.threshold) : null
@@ -41,7 +38,6 @@ export class EarthwireEngine {
     this.channels[index] = {
       config,
       normalizer: createNormalizer(config.normalizer),
-      lfo:       config.lfo       ? createLFO(config.lfo)             : null,
       smoother:  config.smoother  ? createSmoother(config.smoother)   : null,
       quantizer: config.quantizer ? createQuantizer(config.quantizer) : null,
       threshold: config.threshold ? createThreshold(config.threshold) : null
@@ -68,10 +64,6 @@ export class EarthwireEngine {
     }
 
     let value = channel.normalizer.process(rawValue);
-
-    if (channel.lfo) {
-      value = channel.lfo.process(value);
-    }
 
     if (channel.smoother) {
       value = channel.smoother.process(value);
