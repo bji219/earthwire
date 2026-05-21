@@ -21,9 +21,7 @@
     <p class="tagline">Stream live data from the planet into your music.</p>
 
     <p class="description">
-      Earthquakes, the ISS, ocean sensors, bird migrations — transformed into
-      MIDI signals for your DAW, synth, or modular rig.
-      Or build OP-1 Field drum kits from Freesound and Xeno-canto recordings.
+      Live data from the planet, translated into sound. Build OP-1 Field drum kits from Freesound and Xeno-canto recordings.
     </p>
 
     <div class="cta-row">
