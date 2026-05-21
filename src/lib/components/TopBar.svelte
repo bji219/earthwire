@@ -63,9 +63,6 @@
 </script>
 
 <header class="topbar">
-  <div class="logo">Earthwire</div>
-  <a href="/samples" class="samples-link">Samples</a>
-
   <div class="transport">
     <button class="transport-btn" class:active={$isPlaying} on:click={togglePlay}>
       {#if $isPlaying}
@@ -145,22 +142,6 @@
     top: 0;
     z-index: 100;
   }
-  .logo {
-    font-family: var(--font-display);
-    font-size: 1.25rem;
-    font-weight: 400;
-    color: var(--text-primary);
-    letter-spacing: -0.01em;
-  }
-  .samples-link {
-    font-size: 0.75rem;
-    color: var(--text-muted);
-    text-decoration: none;
-    padding: 0.2rem 0.4rem;
-    border-radius: 4px;
-    transition: color 150ms;
-  }
-  .samples-link:hover { color: var(--accent); }
   .transport {
     display: flex;
     gap: 0.25rem;

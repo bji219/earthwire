@@ -1,6 +1,20 @@
 <script lang="ts">
-  // Global layout — wraps every page
+  import { page } from '$app/stores';
 </script>
+
+<svelte:head>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous" />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+</svelte:head>
+
+<div class="site-header">
+  <a href="/" class="wordmark">Earthwire</a>
+  <nav class="site-nav">
+    <a href="/" class="nav-link" class:active={$page.url.pathname === '/'}>Sequencer</a>
+    <a href="/samples" class="nav-link" class:active={$page.url.pathname === '/samples'}>Sampler</a>
+  </nav>
+</div>
 
 <slot />
 
@@ -16,6 +30,45 @@
 </footer>
 
 <style>
+  .site-header {
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+    padding: 0.55rem 1.5rem;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg-input);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    flex-shrink: 0;
+  }
+  .wordmark {
+    font-family: var(--font-display, 'DM Serif Display', Georgia, serif);
+    font-size: 1.25rem;
+    font-weight: 400;
+    color: var(--text-primary);
+    letter-spacing: -0.01em;
+    text-decoration: none;
+  }
+  .site-nav {
+    display: flex;
+    gap: 0.1rem;
+  }
+  .nav-link {
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--text-muted);
+    text-decoration: none;
+    padding: 0.25rem 0.6rem;
+    border-radius: 4px;
+    border-bottom: 2px solid transparent;
+    transition: color 150ms;
+    font-family: var(--font-body, sans-serif);
+  }
+  .nav-link:hover { color: var(--text-primary); }
+  .nav-link.active { color: var(--text-primary); border-bottom-color: var(--text-primary); }
+
   .site-footer {
     display: flex;
     gap: 0.75rem;
@@ -27,21 +80,11 @@
     border-top: 1px solid var(--border);
     font-family: var(--font-body, sans-serif);
   }
-  .site-footer a {
-    color: var(--text-muted);
-    text-decoration: none;
-  }
-  .site-footer a:hover {
-    color: var(--text-primary);
-  }
+  .site-footer a { color: var(--text-muted); text-decoration: none; }
+  .site-footer a:hover { color: var(--text-primary); }
   .site-footer svg {
-    width: 15px;
-    height: 15px;
-    vertical-align: middle;
-    fill: currentColor;
-    display: block;
+    width: 15px; height: 15px;
+    vertical-align: middle; fill: currentColor; display: block;
   }
-  .sep {
-    opacity: 0.4;
-  }
+  .sep { opacity: 0.4; }
 </style>
