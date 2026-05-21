@@ -70,6 +70,7 @@ src/
       types.ts                # EarthwireSource, SourceField, SourceUpdate, SequencerState
       registry.ts             # SourceRegistry — factory pattern
       index.ts                # createDefaultRegistry() — registers all 5 sources
+      lfo-source.ts           # LFO pseudo-source (bypasses registry, uses setInterval in channel-wiring)
       usgs.ts / usgs-sequencer.ts
       iss.ts / iss-sequencer.ts
       ebird.ts / ebird-sequencer.ts
@@ -116,10 +117,9 @@ src/
       WaveformTrimB.svelte     # SVG waveform trim editor (variant B — colored trim region)
       WaveformTrim.svelte      # Original trim component (kept for reference)
 
-      SampleBrowser.svelte     # Tab container for sample search sources
-      FreesoundTab.svelte      # Freesound.org search
-      BirdSoundsTab.svelte     # Xeno-canto bird recording search
-      XenocantoTab.svelte      # Xeno-canto browse/explore
+      SampleBrowser.svelte     # Tab container: My Sounds / Freesound / Bird Sounds
+      FreesoundTab.svelte      # Freesound.org search (category chips + infinite scroll)
+      XenocantoTab.svelte      # Xeno-canto bird recordings (family chips, type filter, infinite scroll)
       MySoundsTab.svelte       # Local file upload (IndexedDB)
 ```
 
@@ -202,23 +202,32 @@ npx tsc --noEmit  # TypeScript check only
 
 ---
 
-## Active Branch: `Tempo_Trainer`
+## Current State (main branch)
 
-This is the main working branch. `main` is the stable base.
+All work is on `main`. Last commit: `957ded9`.
 
-### What's been built on this branch
+### What's been built
 
-- **WaveformTrimA/B**: Two waveform trim editor variants for A/B testing. Variant A uses an imperative canvas (stable height — no Svelte reactivity touches canvas dimensions). Variant B uses SVG with colored bars inside the trim region. Both have zoom: Fit / + / − / Full.
-- **LFO nodes**: Full LFO implementation with 5 shapes, depth blend, wired into engine pipeline. UI in ChannelStrip.
-- **Drum kit export fixes**: Export never blocks on over-budget kits (auto-clips last sample). Progress bar appears below footer during export.
+- **WaveformTrimA/B**: Two waveform trim editor variants. Variant A: imperative canvas (stable — Svelte reactivity must never touch canvas `width`/`height` after mount). Variant B: SVG with colored trim region. Both have zoom: Fit / + / − / Full.
+- **LFO source + engine**: Full LFO as a standalone channel source (`sourceId: 'lfo'`), driven by a per-channel `setInterval` in `channel-wiring.ts`. 5 shapes: sine, triangle, square, saw, rsaw. Depth blend wired into the engine pipeline. `🎛` icon used in channel strip and signal monitor.
+  - **LFO pauses with transport**: `ChannelWiringManager.setPlaying(playing)` sets a `paused` flag; the interval callback skips phase advancement when paused. `lastTick` is always updated so there's no phase jump on resume.
+  - **LFO live config**: The `setInterval` callback reads `channelConfig.lfoConfig` fresh from the engine each tick — shape/rate changes apply within 16ms without needing a wire reconnect.
+- **Demo synth mute button**: `DemoSynthControls` accepts an `active` prop from `+page.svelte` and dispatches a `togglemute` event. The parent calls `synth.start()/stop()` and updates `synthPlaying`, which flows back as the prop. Svelte 4 class mutation problem bypassed by lifting state to parent.
+- **FOUC fix**: CSS custom properties and body baseline moved to an inline `<style>` in `src/app.html` so they render before JS hydration. Duplicate `:global(:root)` blocks removed from Svelte components.
+- **Channel duplication fix**: Default channel only added when `channels.length === 0` in `+page.svelte` `onMount`, preventing channels doubling on every page refresh.
+- **Multi-select in My Sounds tab**: Shift-click for range selection; normal click plays/previews. `selectedIds: Set<string>`, `lastClickedId` anchor. Bulk delete bar appears when `selectedIds.size > 0`.
+- **Multi-select in Kit editor**: Shift-click range selection via `SlotRow` `select` event → `KitBuilder.handleSlotSelect`. `selectedSlots: Set<number>`. Backspace/Delete clears selected slots. Bulk bar at `selectedSlots.size > 1`. Normal click activates + previews and clears selection.
+- **Sample browser tab consolidation**: `BirdSoundsTab.svelte` deleted. `SampleBrowser` now has 3 tabs: My Sounds, Freesound, Bird Sounds — Bird Sounds renders `XenocantoTab` directly.
+- **XenocantoTab redesign**: Family quick-filter chips (12 families), full 30-type recording type dropdown (multi-word types quoted: `type:"alarm call"`), infinite scroll via `IntersectionObserver` with `root: resultsList` (the actual scroll container), recording type badge on result rows. Section label: `N results · more available · Xeno-canto`.
+- **FreesoundTab**: 12 category chips (Kick, Snare, Hi-hat, etc.), infinite scroll with `IntersectionObserver` (`root: resultsList`), `hasMore = !!data.next`.
+- **Drum kit export fixes**: Export never blocks on over-budget kits (auto-clips last sample). Progress bar below footer during export.
 - **SegmentBar click-to-preview**: Clicking a colored segment previews that slot's sound.
-- **Sample browser layout**: Browser panel `max-width: 55%`, kit panel `min-width: 380px / max-width: 45%` — kit is more prominent.
-- **Xeno-canto v3 API**: Upgraded from v2 to v3 endpoint.
-- **Silent export fix**: Freesound and Xeno-canto samples exported as silence when previewed before exporting. Root cause: Chrome/Brave recycle the native memory backing a decoded `AudioBuffer` after a `BufferSourceNode` finishes playing it; subsequent `getChannelData()` calls return zeros. Fixed at two layers: (1) FreesoundTab/XenocantoTab snapshot raw `Float32Array`s immediately at decode time (`pcmCache`), (2) `kit.ts` stores `{ sr, nch, ch: Float32Array[] }` snapshots instead of `AudioBuffer` objects, reconstructing a fresh `new AudioBuffer` on every `getBuffer()` call. `trimBuffer` already used `new AudioBuffer({...})` (pure JS heap) rather than `ctx.createBuffer()` (audio thread pool) — maintain this distinction.
-- **Cross-browser download fixes**: Safari treated `audio/x-aiff` as a streamable media type and truncated the download when `URL.revokeObjectURL` was called before its async download manager had finished reading. Fixed by: (1) using `application/octet-stream` MIME type, (2) appending anchor to `document.body` before `.click()`, (3) revoking the object URL after a 60-second delay. Brave fingerprinting protection (Shields) can zero out Web Audio `getChannelData()` results; this is now detected at add-time and surfaces a Brave-specific error message (`'brave' in navigator`).
-- **OP-1 Field AIFF export**: Full AIFC sowt 16-bit format with FVER chunk, 64-byte AIFC COMM, 4100-byte APPL (4096-byte JSON block padded with spaces, newline after closing `}`), scaled fixed-point start/end positions (`0x7FFFFFFE` = full device window), all 24 slots always have `start < end` (empty slots get unique 1-frame silence regions appended to SSND). Metadata values (`fx_params`, `lfo_params`, `fx_type`, `lfo_type`, `playmode`, `octave`, `dyna_env`) matched against confirmed-working hardware-generated kits. Audio encoded as 16-bit little-endian (sowt) via `aiff-encoder.ts`.
-- **Landing page**: Two CTAs — "Start Listening" (live engine) and "Build a Kit →" (`/samples`). Waveform decoration removed.
-- **Site footer**: Creator links (GitHub, idw3d.com, Etsy) in `src/routes/+layout.svelte` — renders on all pages.
+- **Silent export fix**: `pcmCache` snapshots raw `Float32Array`s at decode time. `kit.ts` stores `{ sr, nch, ch: Float32Array[] }` and reconstructs `new AudioBuffer` on every `getBuffer()` call. Never use `ctx.createBuffer()` (audio thread pool) for stored samples — always `new AudioBuffer({...})` (JS heap).
+- **Cross-browser download fixes**: `application/octet-stream` MIME, anchor appended to body before `.click()`, `URL.revokeObjectURL` deferred 60s. Brave Shields zeroing detected via `'brave' in navigator`.
+- **OP-1 Field AIFF export**: AIFC sowt 16-bit, FVER chunk, 64-byte COMM, 4100-byte APPL (4096-byte JSON + newline), `0x7FFFFFFE` fixed-point positions, 24 slots always `start < end` (empty slots get 1-frame silence regions).
+- **Landing page**: Two CTAs — "Start Listening" and "Build a Kit →".
+- **Site footer**: Creator links in `src/routes/+layout.svelte`.
+- **Xeno-canto v3 API**: Tagged query format (`en:robin`), multi-word types quoted (`type:"alarm call"`).
 
 ### Known pending / future work
 
@@ -252,14 +261,18 @@ pnpm test                              # All tests
 pnpm test src/lib/nodes/lfo.test.ts    # One file
 ```
 
-Test count as of last update: 131 tests, all passing.
+Test count as of last update: 131 tests, all passing (16 test files).
 
 Key test files:
 - `src/lib/nodes/*.test.ts` — all signal nodes
 - `src/lib/engine/engine.test.ts` — EarthwireEngine
+- `src/lib/engine/clock.test.ts` — BPM clock
 - `src/lib/stores/patch.test.ts` — patch store
 - `src/lib/kit/aiff-encoder.test.ts` — AIFF encoding
 - `src/lib/kit/op1-metadata.test.ts` — OP-1 metadata
+- `src/lib/kit/audio-processor.test.ts` — trim/stitch/peak utilities
+- `src/lib/sources/*.test.ts` — ISS, eBird source adapters
+- `src/lib/outputs/midi.test.ts` — MIDI output
 
 ---
 
