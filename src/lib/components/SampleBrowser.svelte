@@ -4,7 +4,6 @@
   import MySoundsTab   from './MySoundsTab.svelte';
   import FreesoundTab  from './FreesoundTab.svelte';
   import XenocantoTab  from './XenocantoTab.svelte';
-  import BirdSoundsTab from './BirdSoundsTab.svelte';
 
   const dispatch = createEventDispatcher<{
     add: {
@@ -15,14 +14,13 @@
     }
   }>();
 
-  type Tab = 'my-sounds' | 'freesound' | 'xeno-canto' | 'birds';
+  type Tab = 'my-sounds' | 'freesound' | 'birds';
   let activeTab: Tab = 'my-sounds';
 
   const TABS: { id: Tab; label: string }[] = [
-    { id: 'my-sounds',  label: '📁 My Sounds' },
-    { id: 'freesound',  label: '🌿 Freesound'  },
-    { id: 'xeno-canto', label: 'Xeno-canto'    },
-    { id: 'birds',      label: '🐦 Bird Sounds' },
+    { id: 'my-sounds', label: '📁 My Sounds' },
+    { id: 'freesound', label: '🌿 Freesound'  },
+    { id: 'birds',     label: '🐦 Bird Sounds' },
   ];
 
   function handleMyAdd(e: CustomEvent<{ sound: any; buffer: AudioBuffer }>) {
@@ -52,10 +50,8 @@
       <MySoundsTab on:add={handleMyAdd} />
     {:else if activeTab === 'freesound'}
       <FreesoundTab on:add={handleFsAdd} />
-    {:else if activeTab === 'xeno-canto'}
-      <XenocantoTab on:add={handleXcAdd} />
     {:else}
-      <BirdSoundsTab on:add={handleXcAdd} />
+      <XenocantoTab on:add={handleXcAdd} />
     {/if}
   </div>
 </div>

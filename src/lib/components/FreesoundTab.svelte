@@ -1,18 +1,48 @@
 <!-- src/lib/components/FreesoundTab.svelte -->
 <script lang="ts">
-  import { createEventDispatcher } from 'svelte';
+  import { createEventDispatcher, onMount } from 'svelte';
   import { formatDuration } from '$lib/kit/types';
   import { audioPlayer } from '$lib/stores/audio-player';
   import { dragPayload } from '$lib/stores/drag';
 
   const dispatch = createEventDispatcher<{ add: { name: string; previewUrl: string; buffer: AudioBuffer } }>();
 
+  const CATEGORIES = [
+    { label: 'Kick',      query: 'kick drum' },
+    { label: 'Snare',     query: 'snare drum' },
+    { label: 'Hi-hat',    query: 'hi-hat' },
+    { label: 'Clap',      query: 'clap' },
+    { label: 'Percussion',query: 'percussion hit' },
+    { label: 'Bass',      query: 'bass hit' },
+    { label: 'FX',        query: 'sound effect hit' },
+    { label: 'Ambient',   query: 'ambient texture' },
+    { label: 'Foley',     query: 'foley' },
+    { label: 'Voice',     query: 'vocal chop' },
+    { label: 'Vinyl',     query: 'vinyl crackle' },
+    { label: 'Nature',    query: 'nature field recording' },
+  ];
+
   let query = '';
   let maxDuration = '';
   let cc0Only = false;
   let results: any[] = [];
   let loading = false;
+  let loadingMore = false;
+  let hasMore = false;
+  let currentPage = 1;
   let error = '';
+  let sentinel: HTMLDivElement;
+  let resultsList: HTMLDivElement;
+
+  onMount(() => {
+    const observer = new IntersectionObserver(entries => {
+      if (entries[0].isIntersecting && hasMore && !loadingMore && !loading) {
+        loadNextPage();
+      }
+    }, { root: resultsList, threshold: 0.1 });
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  });
 
   // Playback cache — Chrome may recycle this buffer's backing memory after playback
   const cache = new Map<number, AudioBuffer>();
@@ -57,24 +87,44 @@
     return buf;
   }
 
+  function buildParams(page = 1): URLSearchParams {
+    const params = new URLSearchParams({ action: 'search', q: query, page: String(page) });
+    if (maxDuration) params.set('max_duration', maxDuration);
+    if (cc0Only) params.set('cc0', '1');
+    return params;
+  }
+
   async function search() {
     if (!query.trim()) return;
-    loading = true; error = ''; results = [];
+    loading = true; error = ''; results = []; currentPage = 1; hasMore = false;
     try {
-      const params = new URLSearchParams({ action: 'search', q: query });
-      if (maxDuration) params.set('max_duration', maxDuration);
-      if (cc0Only) params.set('cc0', '1');
-      const res = await fetch(`/api/freesound?${params}`);
+      const res = await fetch(`/api/freesound?${buildParams(1)}`);
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
         throw new Error(body?.message ?? `Error ${res.status}`);
       }
       const data = await res.json();
       results = data.results ?? [];
+      hasMore = !!data.next;
     } catch (e: any) {
       error = e.message ?? 'Search failed';
     } finally {
       loading = false;
+    }
+  }
+
+  async function loadNextPage() {
+    if (loadingMore || !hasMore) return;
+    loadingMore = true;
+    currentPage++;
+    try {
+      const res = await fetch(`/api/freesound?${buildParams(currentPage)}`);
+      if (!res.ok) return;
+      const data = await res.json();
+      results = [...results, ...(data.results ?? [])];
+      hasMore = !!data.next;
+    } finally {
+      loadingMore = false;
     }
   }
 
@@ -107,6 +157,16 @@
 </script>
 
 <div class="freesound-tab">
+  <div class="category-chips">
+    {#each CATEGORIES as cat}
+      <button
+        class="chip"
+        class:active={query === cat.query}
+        on:click={() => { query = cat.query; search(); }}
+      >{cat.label}</button>
+    {/each}
+  </div>
+
   <div class="search-bar">
     <input bind:value={query} placeholder="Search Freesound…" on:keydown={e => e.key === 'Enter' && search()} />
     <select bind:value={maxDuration}>
@@ -122,40 +182,54 @@
 
   {#if error}<p class="error">{error}</p>{/if}
 
-  {#if results.length > 0}
-    <div class="section-label">{results.length} results · Freesound</div>
-    <div class="results-list">
-      {#each results as result}
-        {@const key = String(result.id)}
-        <div
-          class="result-item"
-          draggable="true"
-          on:click={() => playToggle(result)}
-          on:dragstart={e => handleDragStart(e, result)}
-          on:dragend={() => dragPayload.set(null)}
+  <div class="results-list" bind:this={resultsList}>
+    {#if results.length > 0}
+      <div class="section-label">{results.length} results · Freesound</div>
+    {/if}
+    {#each results as result}
+      {@const key = String(result.id)}
+      <div
+        class="result-item"
+        draggable="true"
+        on:click={() => playToggle(result)}
+        on:dragstart={e => handleDragStart(e, result)}
+        on:dragend={() => dragPayload.set(null)}
+      >
+        <button
+          class="play-btn"
+          class:playing={$audioPlayer.playingKey === key}
+          class:loading={$audioPlayer.loadingKey === key}
+          on:click|stopPropagation={() => playToggle(result)}
         >
-          <button
-            class="play-btn"
-            class:playing={$audioPlayer.playingKey === key}
-            class:loading={$audioPlayer.loadingKey === key}
-            on:click|stopPropagation={() => playToggle(result)}
-          >
-            {$audioPlayer.loadingKey === key ? '…' : $audioPlayer.playingKey === key ? '■' : '▶'}
-          </button>
-          <div class="result-info">
-            <div class="result-name">{result.name}</div>
-            <div class="result-meta">{result.username} · {result.license?.includes('0') ? 'CC0' : 'CC'}</div>
-          </div>
-          <span class="result-dur">{formatDuration(result.duration)}</span>
-          <button class="add-btn" on:click|stopPropagation={() => addToKit(result)}>+ Add</button>
+          {$audioPlayer.loadingKey === key ? '…' : $audioPlayer.playingKey === key ? '■' : '▶'}
+        </button>
+        <div class="result-info">
+          <div class="result-name">{result.name}</div>
+          <div class="result-meta">{result.username} · {result.license?.includes('0') ? 'CC0' : 'CC'}</div>
         </div>
-      {/each}
-    </div>
-  {/if}
+        <span class="result-dur">{formatDuration(result.duration)}</span>
+        <button class="add-btn" on:click|stopPropagation={() => addToKit(result)}>+ Add</button>
+      </div>
+    {/each}
+    <div bind:this={sentinel} class="sentinel"></div>
+    {#if loadingMore}<div class="loading-more">loading…</div>{/if}
+  </div>
 </div>
 
 <style>
   .freesound-tab { height: 100%; overflow-y: auto; display: flex; flex-direction: column; }
+  .category-chips {
+    display: flex; flex-wrap: wrap; gap: 0.35rem;
+    padding: 0.6rem 1rem; border-bottom: 1px solid var(--border); flex-shrink: 0;
+  }
+  .chip {
+    font-size: 0.65rem; padding: 0.2rem 0.6rem;
+    border: 1px solid var(--border); border-radius: 20px;
+    background: none; color: var(--text-muted); cursor: pointer;
+    font-family: var(--font-body); transition: border-color 120ms, color 120ms;
+  }
+  .chip:hover { border-color: var(--accent); color: var(--accent); }
+  .chip.active { border-color: var(--accent); color: var(--accent); background: var(--accent-bg); }
   .search-bar {
     display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;
     padding: 0.65rem 1rem; border-bottom: 1px solid var(--border); flex-shrink: 0;
@@ -196,4 +270,6 @@
   }
   .add-btn:hover { border-color: var(--accent); color: var(--accent); }
   .error { font-size: 0.72rem; color: #c0392b; padding: 0.5rem 1rem; }
+  .sentinel { height: 1px; }
+  .loading-more { text-align: center; padding: 0.75rem; font-size: 0.7rem; color: var(--text-muted); }
 </style>

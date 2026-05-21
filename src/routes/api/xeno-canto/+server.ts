@@ -14,6 +14,7 @@ export const GET: RequestHandler = async ({ url }) => {
   const quality = url.searchParams.get('quality') ?? '';
   const len     = url.searchParams.get('len') ?? '';
   const country = url.searchParams.get('country') ?? '';
+  const type    = url.searchParams.get('type') ?? '';
   const page    = url.searchParams.get('page') ?? '1';
 
   // v3 API requires tagged queries. Prefix each bare word with en: so users
@@ -28,6 +29,7 @@ export const GET: RequestHandler = async ({ url }) => {
   if (quality) q += ` q:${quality}`;
   if (country) q += ` cnt:${country}`;
   if (len)     q += ` len:${len}`;
+  if (type)    q += type.includes(' ') ? ` type:"${type}"` : ` type:${type}`;
 
   const params = new URLSearchParams({ key: XENO_CANTO_KEY, query: q, page });
 

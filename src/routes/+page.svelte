@@ -119,7 +119,9 @@
       threshold: null,
       output: { type: 'demo-synth', param: 'filter-cutoff' }
     };
-    patch.addChannel(defaultChannel);
+    if (get(patch).channels.length === 0) {
+      patch.addChannel(defaultChannel);
+    }
 
     if (browser) sessionStorage.setItem('earthwire-started', '1');
     // Set started = true so the reactive block fires syncChannels once.
@@ -163,18 +165,22 @@
     // Don't set $isPlaying here — TopBar already set it to false
   }
 
+  let synthPlaying = false;
+
   // Reactively sync transport play/pause and gate synth (merged block)
   $: if (transport && started) {
     const playing = $isPlaying;
     const wantSynth = $patch.channels.some(ch => ch.output.type === 'demo-synth');
     try {
       log.transport(`reactive: playing=${playing} wantSynth=${wantSynth}`);
+      wiring?.setPlaying(playing);
       if (playing) {
         transport.play();
-        if (wantSynth) synth?.start();
-        else synth?.stop();
+        if (wantSynth) { synth?.start(); synthPlaying = true; }
+        else { synth?.stop(); synthPlaying = false; }
       } else {
         synth?.stop();
+        synthPlaying = false;
         transport.pause();
       }
     } catch (e) {
@@ -222,7 +228,10 @@
       <button class="add-channel" on:click={addChannel}>+ Add Channel</button>
     </main>
 
-    <DemoSynthControls {synth} />
+    <DemoSynthControls {synth} active={synthPlaying} on:togglemute={() => {
+      if (synthPlaying) { synth?.stop(); synthPlaying = false; }
+      else { synth?.start(); synthPlaying = true; }
+    }} />
 
     <div class="daw-banner">
       Connect to your DAW for the full experience &mdash;
@@ -232,33 +241,6 @@
 {/if}
 
 <style>
-  :global(:root) {
-    --bg-primary: #FAFAF7;
-    --bg-secondary: #F0EDE6;
-    --bg-tertiary: #E8E4DC;
-    --bg-input: #FFFFFF;
-    --text-primary: #2C2C2C;
-    --text-secondary: #6B6B6B;
-    --text-muted: #9B9B9B;
-    --accent: #1A6B5A;
-    --accent-light: #2D9B84;
-    --accent-bg: #E8F5F0;
-    --border: #DDD8CF;
-    --border-light: #EBE7E0;
-    --signal-active: #1A6B5A;
-    --signal-inactive: #CCC8BF;
-    --danger: #C45B4A;
-    --font-display: 'DM Serif Display', Georgia, serif;
-    --font-body: 'DM Sans', 'Helvetica Neue', sans-serif;
-    --font-mono: 'JetBrains Mono', 'SF Mono', monospace;
-  }
-  :global(body) {
-    margin: 0;
-    font-family: var(--font-body);
-    background: var(--bg-primary);
-    color: var(--text-primary);
-    -webkit-font-smoothing: antialiased;
-  }
   .app {
     min-height: 100vh;
     display: flex;

@@ -4,6 +4,35 @@
     <meta charset="utf-8" />
     <link rel="icon" href="%sveltekit.assets%/favicon.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style>
+      :root {
+        --bg-primary: #FAFAF7;
+        --bg-secondary: #F0EDE6;
+        --bg-tertiary: #E8E4DC;
+        --bg-input: #FFFFFF;
+        --text-primary: #2C2C2C;
+        --text-secondary: #6B6B6B;
+        --text-muted: #9B9B9B;
+        --accent: #1A6B5A;
+        --accent-light: #2D9B84;
+        --accent-bg: #E8F5F0;
+        --border: #DDD8CF;
+        --border-light: #EBE7E0;
+        --signal-active: #1A6B5A;
+        --signal-inactive: #CCC8BF;
+        --danger: #C45B4A;
+        --font-display: 'DM Serif Display', Georgia, serif;
+        --font-body: 'DM Sans', 'Helvetica Neue', sans-serif;
+        --font-mono: 'JetBrains Mono', 'SF Mono', monospace;
+      }
+      body {
+        margin: 0;
+        font-family: var(--font-body);
+        background: var(--bg-primary);
+        color: var(--text-primary);
+        -webkit-font-smoothing: antialiased;
+      }
+    </style>
     %sveltekit.head%
   </head>
   <body data-sveltekit-preload-data="hover">

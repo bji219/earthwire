@@ -16,9 +16,6 @@
 </footer>
 
 <style>
-  :global(body) {
-    margin: 0;
-  }
   .site-footer {
     display: flex;
     gap: 0.75rem;

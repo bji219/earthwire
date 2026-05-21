@@ -1,12 +1,15 @@
 <script lang="ts">
+  import { createEventDispatcher } from 'svelte';
   import type { DemoSynth } from '$lib/outputs/demo-synth.js';
 
+  const dispatch = createEventDispatcher<{ togglemute: void }>();
+
   export let synth: DemoSynth | null = null;
+  export let active = false;
 
   let waveform: OscillatorType = 'sawtooth';
   let filterValue = 0.5;
   let reverbValue = 0.3;
-
   function handleWaveform(e: Event) {
     waveform = (e.target as HTMLSelectElement).value as OscillatorType;
     synth?.setWaveform(waveform);
@@ -23,11 +26,7 @@
   }
 
   function toggleMute() {
-    if (synth?.active) {
-      synth.stop();
-    } else {
-      synth?.start();
-    }
+    dispatch('togglemute');
   }
 </script>
 
@@ -55,8 +54,8 @@
       <input type="range" min="0" max="1" step="0.01" value={reverbValue} on:input={handleReverb} />
     </label>
 
-    <button class="mute-btn" class:muted={!synth.active} on:click={toggleMute}>
-      {synth.active ? '🔊 On' : '🔇 Muted'}
+    <button class="mute-btn" class:muted={!active} on:click={toggleMute}>
+      {active ? '🔊 On' : '🔇 Muted'}
     </button>
   </div>
 {/if}

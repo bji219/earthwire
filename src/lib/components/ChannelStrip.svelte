@@ -16,7 +16,7 @@
     { id: 'ebird-activity', name: 'Bird Activity', icon: '🐦' },
     { id: 'mbari-ocean', name: 'MBARI Ocean', icon: '🌊' },
     { id: 'solar-wind', name: 'Solar Wind', icon: '☀️' },
-    { id: 'lfo', name: 'LFO', icon: '〜' }
+    { id: 'lfo', name: 'LFO', icon: '🎛' }
   ];
 
   const SOURCE_INFO: Record<string, { url: string; description: string }> = {

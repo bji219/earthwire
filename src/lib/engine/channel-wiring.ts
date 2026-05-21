@@ -34,6 +34,7 @@ export class ChannelWiringManager {
 	private wires: ChannelWire[] = [];
 	private generation = 0;
 	private syncing = false;
+	private paused = false;
 	// Track last note per channel index for proper note-off
 	private lastNotes: Map<number, { port: string; channel: number; note: number }> = new Map();
 
@@ -49,6 +50,10 @@ export class ChannelWiringManager {
 		private getSelectedMidiPort?: () => string,
 		private transport?: SequencerTransport | null
 	) {}
+
+	setPlaying(playing: boolean): void {
+		this.paused = !playing;
+	}
 
 	async syncChannels(channels: ChannelConfig[]): Promise<void> {
 		if (this.syncing) return;
@@ -138,9 +143,6 @@ export class ChannelWiringManager {
 
 		// LFO source: bypass registry — run a per-channel setInterval timer
 		if (wire.sourceId === 'lfo') {
-			const lfoConfig = config?.lfoConfig ?? { shape: 'sine' as const, rate: 1 };
-			// Update at ~60 fps; for rates above 15 Hz use at least 4 samples/cycle
-			const intervalMs = Math.max(16, Math.round(1000 / (lfoConfig.rate * 8)));
 			let phase = 0;
 			let lastTick = Date.now();
 
@@ -148,15 +150,18 @@ export class ChannelWiringManager {
 				const now = Date.now();
 				const dt = (now - lastTick) / 1000;
 				lastTick = now;
-				phase = (phase + dt * lfoConfig.rate) % 1;
-				const rawValue = shapeValue(lfoConfig.shape, phase);
+				if (this.paused) return;
 
 				const channelConfig = this.engine.getChannelConfig(index);
 				if (!channelConfig) return;
+				const lfo = channelConfig.lfoConfig ?? { shape: 'sine' as const, rate: 1 };
+				phase = (phase + dt * lfo.rate) % 1;
+				const rawValue = shapeValue(lfo.shape, phase);
+
 				const output = this.engine.processValue(index, rawValue);
 				this.dispatchOutput(index, channelConfig.output, output);
 				this.onSignal?.(index, rawValue, output, channelConfig);
-			}, intervalMs);
+			}, 16);
 
 			wire.unsubscribe = () => clearInterval(timer);
 			return;

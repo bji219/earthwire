@@ -10,7 +10,8 @@
     'iss-position': 'ISS Position',
     'ebird-activity': 'Bird Activity',
     'mbari-ocean': 'MBARI Ocean',
-    'solar-wind': 'Solar Wind'
+    'solar-wind': 'Solar Wind',
+    'lfo': 'LFO'
   };
 
   const SOURCE_ICONS: Record<string, string> = {
@@ -18,7 +19,8 @@
     'iss-position': '🔭',
     'ebird-activity': '🐦',
     'mbari-ocean': '🌊',
-    'solar-wind': '☀️'
+    'solar-wind': '☀️',
+    'lfo': '🎛'
   };
 
   function formatValue(v: number): string {

@@ -18,6 +18,8 @@
   ];
 
   let activeSlot = 0;
+  let selectedSlots = new Set<number>();
+  let lastClickedSlot: number | null = null;
   let exporting = false;
   let exportError = '';
   let exportProgress = 0; // 0–1
@@ -32,12 +34,31 @@
     kit.setName((e.target as HTMLInputElement).value);
   }
 
+  function handleSlotSelect(i: number) {
+    if (lastClickedSlot !== null) {
+      const [lo, hi] = lastClickedSlot < i ? [lastClickedSlot, i] : [i, lastClickedSlot];
+      for (let n = lo; n <= hi; n++) selectedSlots.add(n);
+      selectedSlots = selectedSlots;
+    } else {
+      selectedSlots = new Set([i]);
+      lastClickedSlot = i;
+    }
+  }
+
+  function clearSelected() {
+    for (const n of selectedSlots) kit.clearSlot(n);
+    selectedSlots = new Set();
+  }
+
   function handleKeydown(e: KeyboardEvent) {
     if (e.target instanceof HTMLInputElement) return;
     if (e.key === 'ArrowDown') { e.preventDefault(); activeSlot = Math.min(23, activeSlot + 1); }
     if (e.key === 'ArrowUp')   { e.preventDefault(); activeSlot = Math.max(0,  activeSlot - 1); }
     if (e.key === ' ')         { e.preventDefault(); previewSlot(activeSlot); }
-    if (e.key === 'Backspace') { e.preventDefault(); kit.clearSlot(activeSlot); }
+    if (e.key === 'Backspace' || e.key === 'Delete') {
+      e.preventDefault();
+      if (selectedSlots.size > 0) { clearSelected(); } else { kit.clearSlot(activeSlot); }
+    }
   }
 
   function handleFill(e: CustomEvent<{ index: number; name: string; sourceType: SlotMeta['sourceType']; remoteSrc?: string; buffer: AudioBuffer }>) {
@@ -216,6 +237,13 @@
   <SegmentBar slots={$kit.slots} deviceMode={$kit.deviceMode} on:preview={e => previewSlot(e.detail.index)} />
 
   <!-- 24 slot rows -->
+  {#if selectedSlots.size > 1}
+    <div class="bulk-bar">
+      <span>{selectedSlots.size} slots selected</span>
+      <button class="bulk-clear-btn" on:click={clearSelected}>Clear selected</button>
+      <button class="bulk-deselect-btn" on:click={() => { selectedSlots = new Set(); }}>Deselect</button>
+    </div>
+  {/if}
   <div class="slot-list">
     {#each $kit.slots as slot, i}
       <SlotRow
@@ -223,7 +251,9 @@
         {slot}
         buffer={$kit.slots[i] ? kit.getBuffer(i) : undefined}
         isActive={activeSlot === i}
-        on:activate={() => { activeSlot = i; previewSlot(i); }}
+        isSelected={selectedSlots.has(i)}
+        on:select={() => handleSlotSelect(i)}
+        on:activate={() => { activeSlot = i; selectedSlots = new Set(); lastClickedSlot = i; previewSlot(i); }}
         on:clear={() => kit.clearSlot(i)}
         on:trim={e => kit.updateSlotTrim(i, e.detail.trimStart, e.detail.trimEnd)}
         on:preview={() => previewSlot(i)}
@@ -258,7 +288,7 @@
     <p class="export-error">{exportError}</p>
   {/if}
 
-  <p class="hint">arrow keys navigate · click/space plays · backspace deletes · drag to reorder</p>
+  <p class="hint">arrow keys navigate · click plays · shift-click range-selects · backspace/delete clears · drag to reorder</p>
 </div>
 
 <style>
@@ -316,6 +346,23 @@
   .export-error {
     font-size: 0.7rem; color: #c0392b; padding: 0.3rem 1rem;
   }
+
+  .bulk-bar {
+    display: flex; align-items: center; gap: 0.6rem;
+    padding: 0.35rem 1rem; background: var(--accent-bg);
+    border-bottom: 1px solid var(--accent); flex-shrink: 0;
+    font-size: 0.68rem; color: var(--accent);
+  }
+  .bulk-bar span { flex: 1; }
+  .bulk-clear-btn, .bulk-deselect-btn {
+    font-size: 0.65rem; padding: 0.15rem 0.55rem;
+    border-radius: 3px; cursor: pointer; font-family: var(--font-body);
+    background: none;
+  }
+  .bulk-clear-btn { border: 1px solid var(--danger, #c45b4a); color: var(--danger, #c45b4a); }
+  .bulk-clear-btn:hover { background: var(--danger, #c45b4a); color: #fff; }
+  .bulk-deselect-btn { border: 1px solid var(--accent); color: var(--accent); }
+  .bulk-deselect-btn:hover { background: var(--accent); color: #fff; }
 
   .hint {
     font-size: 0.6rem; color: var(--text-muted); padding: 0.4rem 1rem;

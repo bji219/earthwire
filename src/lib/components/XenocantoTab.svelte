@@ -9,19 +9,95 @@
 
   const dispatch = createEventDispatcher<{ add: { name: string; remoteSrc: string; buffer: AudioBuffer } }>();
 
+  const FAMILIES = [
+    { label: 'Warblers',     query: 'warbler' },
+    { label: 'Thrushes',     query: 'thrush' },
+    { label: 'Hawks',        query: 'hawk' },
+    { label: 'Owls',         query: 'owl' },
+    { label: 'Sparrows',     query: 'sparrow' },
+    { label: 'Finches',      query: 'finch' },
+    { label: 'Ducks',        query: 'duck' },
+    { label: 'Woodpeckers',  query: 'woodpecker' },
+    { label: 'Swallows',     query: 'swallow' },
+    { label: 'Herons',       query: 'heron' },
+    { label: 'Shorebirds',   query: 'sandpiper' },
+    { label: 'Crows',        query: 'crow' },
+  ];
+
   let query = '';
   let quality = 'A';
   let country = '';
-  let results: any[] = [];
+  let recType = '';
+  let recordings: any[] = [];
   let loading = false;
+  let loadingMore = false;
   let error = '';
+  let currentPage = 1;
+  let totalPages = 1;
+  let sentinel: HTMLDivElement;
+  let resultsList: HTMLDivElement;
 
   const cache = new Map<string, AudioBuffer>();
   const pcmCache = new Map<string, { sr: number; nch: number; ch: Float32Array[] }>();
 
   onMount(() => {
     if (initialQuery) { query = initialQuery; search(); }
+
+    const observer = new IntersectionObserver(entries => {
+      if (entries[0].isIntersecting && currentPage < totalPages && !loadingMore && !loading) {
+        loadNextPage();
+      }
+    }, { root: resultsList, threshold: 0.1 });
+    observer.observe(sentinel);
+    return () => observer.disconnect();
   });
+
+  function buildParams(page = 1): URLSearchParams {
+    const params = new URLSearchParams({ q: query, page: String(page) });
+    if (quality) params.set('quality', quality);
+    if (country) params.set('country', country);
+    if (recType) params.set('type', recType);
+    return params;
+  }
+
+  async function search() {
+    if (!query.trim()) return;
+    loading = true; error = ''; recordings = []; currentPage = 1; totalPages = 1;
+    try {
+      const res = await fetch(`/api/xeno-canto?${buildParams(1)}`);
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body?.message ?? `Error ${res.status}`);
+      }
+      const data = await res.json();
+      recordings = data.recordings ?? [];
+      totalPages = data.numPages ?? 1;
+    } catch (e: any) {
+      error = e.message ?? 'Search failed';
+    } finally {
+      loading = false;
+    }
+  }
+
+  async function loadNextPage() {
+    if (loadingMore || currentPage >= totalPages) return;
+    loadingMore = true;
+    currentPage++;
+    try {
+      const res = await fetch(`/api/xeno-canto?${buildParams(currentPage)}`);
+      if (!res.ok) return;
+      const data = await res.json();
+      recordings = [...recordings, ...(data.recordings ?? [])];
+      totalPages = data.numPages ?? totalPages;
+    } finally {
+      loadingMore = false;
+    }
+  }
+
+  function pickFamily(f: { query: string }) {
+    query = f.query;
+    search();
+  }
 
   function getAudioUrl(rec: any): string {
     return `/api/xeno-canto/audio?id=${rec.id}`;
@@ -57,27 +133,6 @@
     return buf;
   }
 
-  async function search() {
-    if (!query.trim()) return;
-    loading = true; error = ''; results = [];
-    try {
-      const params = new URLSearchParams({ q: query });
-      if (quality) params.set('quality', quality);
-      if (country) params.set('country', country);
-      const res = await fetch(`/api/xeno-canto?${params}`);
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        throw new Error(body?.message ?? `Error ${res.status}`);
-      }
-      const data = await res.json();
-      results = data.recordings ?? [];
-    } catch (e: any) {
-      error = e.message ?? 'Search failed';
-    } finally {
-      loading = false;
-    }
-  }
-
   function recName(rec: any): string {
     return `${rec['en'] || rec['gen']} ${rec['sp']} (XC${rec.id})`;
   }
@@ -111,8 +166,51 @@
 </script>
 
 <div class="xeno-tab">
+  <!-- Family chips -->
+  <div class="family-chips">
+    {#each FAMILIES as fam}
+      <button
+        class="chip"
+        class:active={query === fam.query}
+        on:click={() => pickFamily(fam)}
+      >{fam.label}</button>
+    {/each}
+  </div>
+
+  <!-- Search bar -->
   <div class="search-bar">
-    <input bind:value={query} placeholder="Species name…" on:keydown={e => e.key === 'Enter' && search()} />
+    <input bind:value={query} placeholder="Search Xeno-canto database…" on:keydown={e => e.key === 'Enter' && search()} />
+    <select bind:value={recType}>
+      <option value="">All types</option>
+      <option value="song">Song</option>
+      <option value="call">Call</option>
+      <option value="alarm call">Alarm call</option>
+      <option value="flight call">Flight call</option>
+      <option value="flight song">Flight song</option>
+      <option value="dawn song">Dawn song</option>
+      <option value="subsong">Subsong</option>
+      <option value="female song">Female song</option>
+      <option value="advertisement call">Advertisement call</option>
+      <option value="begging call">Begging call</option>
+      <option value="mating call">Mating call</option>
+      <option value="social call">Social call</option>
+      <option value="territorial call">Territorial call</option>
+      <option value="agonistic call">Agonistic call</option>
+      <option value="defensive call">Defensive call</option>
+      <option value="distress call">Distress call</option>
+      <option value="release call">Release call</option>
+      <option value="nocturnal flight call">Nocturnal flight call</option>
+      <option value="courtship song">Courtship song</option>
+      <option value="rivalry song">Rivalry song</option>
+      <option value="calling song">Calling song</option>
+      <option value="duet">Duet</option>
+      <option value="drumming">Drumming</option>
+      <option value="echolocation">Echolocation</option>
+      <option value="imitation">Imitation</option>
+      <option value="mechanical sound">Mechanical sound</option>
+      <option value="feeding buzz">Feeding buzz</option>
+      <option value="aberrant">Aberrant</option>
+    </select>
     <select bind:value={quality}>
       <option value="">All quality</option>
       <option value="A">Quality A</option>
@@ -124,40 +222,63 @@
 
   {#if error}<p class="error">{error}</p>{/if}
 
-  {#if results.length > 0}
-    <div class="section-label">{results.length} results · Xeno-canto</div>
-    <div class="results-list">
-      {#each results as rec}
-        {@const dur = parseFloat(rec.length ?? '0')}
-        <div
-          class="result-item"
-          draggable="true"
-          on:click={() => playToggle(rec)}
-          on:dragstart={e => handleDragStart(e, rec)}
-          on:dragend={() => dragPayload.set(null)}
-        >
-          <button
-            class="play-btn"
-            class:playing={$audioPlayer.playingKey === rec.id}
-            class:loading={$audioPlayer.loadingKey === rec.id}
-            on:click|stopPropagation={() => playToggle(rec)}
-          >
-            {$audioPlayer.loadingKey === rec.id ? '…' : $audioPlayer.playingKey === rec.id ? '■' : '▶'}
-          </button>
-          <div class="result-info">
-            <div class="result-name">{rec['en'] || rec['gen']} {rec['sp']}</div>
-            <div class="result-meta">{rec.cnt} · XC{rec.id} · Q:{rec.q}</div>
-          </div>
-          <span class="result-dur">{formatDuration(dur)}</span>
-          <button class="add-btn" on:click|stopPropagation={() => addToKit(rec)}>+ Add</button>
-        </div>
-      {/each}
-    </div>
+  {#if recordings.length > 0}
+    <div class="section-label">{recordings.length} results{totalPages > 1 ? ' · more available' : ''} · Xeno-canto</div>
   {/if}
+
+  <div class="results-list" bind:this={resultsList}>
+    {#each recordings as rec}
+      {@const dur = parseFloat(rec.length ?? '0')}
+      <div
+        class="result-item"
+        draggable="true"
+        on:click={() => playToggle(rec)}
+        on:dragstart={e => handleDragStart(e, rec)}
+        on:dragend={() => dragPayload.set(null)}
+      >
+        <button
+          class="play-btn"
+          class:playing={$audioPlayer.playingKey === rec.id}
+          class:loading={$audioPlayer.loadingKey === rec.id}
+          on:click|stopPropagation={() => playToggle(rec)}
+        >
+          {$audioPlayer.loadingKey === rec.id ? '…' : $audioPlayer.playingKey === rec.id ? '■' : '▶'}
+        </button>
+        <div class="result-info">
+          <div class="result-name">{rec['en'] || rec['gen']} {rec['sp']}</div>
+          <div class="result-meta">{rec.cnt} · XC{rec.id} · Q:{rec.q}</div>
+        </div>
+        {#if rec.type}
+          <span class="rec-type">{rec.type}</span>
+        {/if}
+        <span class="result-dur">{formatDuration(dur)}</span>
+        <button class="add-btn" on:click|stopPropagation={() => addToKit(rec)}>+ Add</button>
+      </div>
+    {/each}
+
+    <div bind:this={sentinel} class="sentinel"></div>
+    {#if loadingMore}
+      <div class="loading-more">loading…</div>
+    {/if}
+  </div>
 </div>
 
 <style>
   .xeno-tab { height: 100%; overflow-y: auto; display: flex; flex-direction: column; }
+
+  .family-chips {
+    display: flex; flex-wrap: wrap; gap: 0.35rem;
+    padding: 0.6rem 1rem; border-bottom: 1px solid var(--border); flex-shrink: 0;
+  }
+  .chip {
+    font-size: 0.65rem; padding: 0.2rem 0.6rem;
+    border: 1px solid var(--border); border-radius: 20px;
+    background: none; color: var(--text-muted); cursor: pointer;
+    font-family: var(--font-body); transition: border-color 120ms, color 120ms;
+  }
+  .chip:hover { border-color: var(--accent); color: var(--accent); }
+  .chip.active { border-color: var(--accent); color: var(--accent); background: var(--accent-bg); }
+
   .search-bar {
     display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;
     padding: 0.65rem 1rem; border-bottom: 1px solid var(--border); flex-shrink: 0;
@@ -171,6 +292,7 @@
   .search-bar input:first-of-type { flex: 1; min-width: 8rem; }
   .country-input { width: 5rem; flex: none !important; }
   .search-bar button { cursor: pointer; }
+
   .section-label {
     font-size: 0.65rem; font-weight: 600; letter-spacing: 0.08em;
     color: var(--text-muted); text-transform: uppercase; padding: 0.5rem 1rem 0.25rem; flex-shrink: 0;
@@ -191,6 +313,10 @@
   .result-info { flex: 1; min-width: 0; }
   .result-name { font-size: 0.77rem; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .result-meta { font-size: 0.67rem; color: var(--text-muted); }
+  .rec-type {
+    font-size: 0.6rem; color: var(--text-muted); flex-shrink: 0;
+    text-transform: lowercase; font-style: italic;
+  }
   .result-dur { font-size: 0.7rem; color: var(--text-muted); flex-shrink: 0; font-variant-numeric: tabular-nums; }
   .add-btn {
     font-size: 0.68rem; padding: 0.18rem 0.5rem; border: 1px solid var(--border);
@@ -198,4 +324,8 @@
   }
   .add-btn:hover { border-color: var(--accent); color: var(--accent); }
   .error { font-size: 0.72rem; color: #c0392b; padding: 0.5rem 1rem; }
+  .sentinel { height: 1px; }
+  .loading-more {
+    text-align: center; padding: 0.75rem; font-size: 0.7rem; color: var(--text-muted);
+  }
 </style>

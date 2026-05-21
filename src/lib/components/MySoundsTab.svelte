@@ -14,6 +14,8 @@
   let sounds: LocalSound[] = [];
   let dragging = false;
   let decodeCtx: AudioContext | null = null; // used only for decoding, not playback
+  let selectedIds = new Set<string>();
+  let lastClickedId: string | null = null;
 
   // Caches — persist for component lifetime
   const decodedBuffers = new Map<string, AudioBuffer>();
@@ -87,8 +89,41 @@
     await deleteSound(sound.id);
     decodedBuffers.delete(sound.id);
     waveformPaths.delete(sound.id);
+    selectedIds.delete(sound.id);
+    selectedIds = selectedIds;
     waveformPaths = waveformPaths;
     sounds = sounds.filter(s => s.id !== sound.id);
+  }
+
+  async function deleteSelected() {
+    for (const id of selectedIds) {
+      await deleteSound(id);
+      decodedBuffers.delete(id);
+      waveformPaths.delete(id);
+    }
+    sounds = sounds.filter(s => !selectedIds.has(s.id));
+    selectedIds = new Set();
+    lastClickedId = null;
+    waveformPaths = waveformPaths;
+  }
+
+  function handleRowClick(sound: LocalSound, e: MouseEvent) {
+    if (e.shiftKey) {
+      if (lastClickedId) {
+        const ids = sounds.map(s => s.id);
+        const a = ids.indexOf(lastClickedId);
+        const b = ids.indexOf(sound.id);
+        const [lo, hi] = a < b ? [a, b] : [b, a];
+        selectedIds = new Set([...selectedIds, ...ids.slice(lo, hi + 1)]);
+      } else {
+        selectedIds = new Set([sound.id]);
+        lastClickedId = sound.id;
+      }
+    } else {
+      selectedIds = new Set();
+      lastClickedId = null;
+      playToggle(sound);
+    }
   }
 
   function handleDragStart(e: DragEvent, sound: LocalSound) {
@@ -123,12 +158,20 @@
   </label>
 
   {#if sounds.length > 0}
-    <div class="section-label">my library · {sounds.length} files</div>
+    <div class="section-label">my library · {sounds.length} files · shift-click to multi-select</div>
+    {#if selectedIds.size > 0}
+      <div class="bulk-bar">
+        <span>{selectedIds.size} selected</span>
+        <button class="bulk-delete-btn" on:click={deleteSelected}>Delete selected</button>
+        <button class="bulk-deselect-btn" on:click={() => { selectedIds = new Set(); }}>Deselect all</button>
+      </div>
+    {/if}
     {#each sounds as sound}
       <div
         class="result-item"
+        class:selected={selectedIds.has(sound.id)}
         draggable="true"
-        on:click={() => playToggle(sound)}
+        on:click={(e) => handleRowClick(sound, e)}
         on:dragstart={e => handleDragStart(e, sound)}
         on:dragend={handleDragEnd}
       >
@@ -174,13 +217,31 @@
     font-size: 0.65rem; font-weight: 600; letter-spacing: 0.08em;
     color: var(--text-muted); text-transform: uppercase; padding: 0.5rem 1rem 0.25rem;
   }
+  .bulk-bar {
+    display: flex; align-items: center; gap: 0.6rem;
+    padding: 0.35rem 1rem; background: var(--accent-bg);
+    border-bottom: 1px solid var(--accent);
+    font-size: 0.68rem; color: var(--accent);
+  }
+  .bulk-bar span { flex: 1; }
+  .bulk-delete-btn, .bulk-deselect-btn {
+    font-size: 0.65rem; padding: 0.15rem 0.55rem;
+    border-radius: 3px; cursor: pointer; font-family: var(--font-body);
+    background: none;
+  }
+  .bulk-delete-btn { border: 1px solid var(--danger, #c45b4a); color: var(--danger, #c45b4a); }
+  .bulk-delete-btn:hover { background: var(--danger, #c45b4a); color: #fff; }
+  .bulk-deselect-btn { border: 1px solid var(--accent); color: var(--accent); }
+  .bulk-deselect-btn:hover { background: var(--accent); color: #fff; }
+
   .result-item {
     display: flex; align-items: center; gap: 0.6rem;
     padding: 0.5rem 1rem; border-bottom: 1px solid var(--border-light, #eee);
-    cursor: grab;
+    cursor: pointer;
   }
   .result-item:active { cursor: grabbing; }
-  .result-item:hover { background: var(--bg-secondary); }
+  .result-item:hover:not(.selected) { background: var(--bg-secondary); }
+  .result-item.selected { background: var(--accent-bg); outline: 1px solid var(--accent); outline-offset: -1px; }
   .play-btn {
     width: 20px; height: 20px; border-radius: 50%; background: var(--text-primary);
     color: var(--bg-primary, #fff); border: none; cursor: pointer; font-size: 0.55rem;

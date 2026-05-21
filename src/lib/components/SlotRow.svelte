@@ -13,9 +13,11 @@
   export let slot: SlotMeta | null;
   export let buffer: AudioBuffer | undefined;
   export let isActive: boolean = false;
+  export let isSelected: boolean = false;
 
   const dispatch = createEventDispatcher<{
     activate: void;
+    select: void;
     clear: void;
     trim: { trimStart: number; trimEnd: number };
     preview: void;
@@ -69,10 +71,11 @@
   <div
     class="slot-row"
     class:active={isActive}
+    class:selected={isSelected}
     class:filled={!!slot}
     class:drag-over={isDragOver}
     draggable={!!slot}
-    on:click={() => dispatch('activate')}
+    on:click={(e) => { if (e.shiftKey) { dispatch('select'); } else { dispatch('activate'); } }}
     on:dragstart={handleSlotDragStart}
     on:dragover={handleDragOver}
     on:dragleave={handleDragLeave}
@@ -170,7 +173,8 @@
     min-height: 32px; cursor: pointer;
     transition: background 80ms;
   }
-  .slot-row:hover:not(.active) { background: var(--bg-secondary); }
+  .slot-row:hover:not(.active):not(.selected) { background: var(--bg-secondary); }
+  .slot-row.selected:not(.active) { background: var(--accent-bg); outline: 1px solid var(--accent); outline-offset: -1px; }
   .slot-row.active { background: #1a1a1a; color: #fff; }
   .slot-row.drag-over {
     outline: 2px solid var(--accent, #4a9eff);
