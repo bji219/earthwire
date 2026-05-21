@@ -8,6 +8,7 @@
   <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
 </svelte:head>
 
+<div class="layout-shell">
 <div class="site-header">
   <a href="/" class="wordmark">Earthwire</a>
   <nav class="site-nav">
@@ -16,7 +17,7 @@
   </nav>
 </div>
 
-<slot />
+<div class="layout-content"><slot /></div>
 
 <footer class="site-footer">
   <a href="https://github.com/bji219" target="_blank" rel="noopener noreferrer" aria-label="GitHub">
@@ -28,6 +29,7 @@
   <span class="sep">·</span>
   <a href="https://idw3d.etsy.com" target="_blank" rel="noopener noreferrer">Etsy</a>
 </footer>
+</div>
 
 <style>
   .site-header {
@@ -82,6 +84,19 @@
   }
   .site-footer a { color: var(--text-muted); text-decoration: none; }
   .site-footer a:hover { color: var(--text-primary); }
+
+  .layout-shell {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    overflow: hidden;
+  }
+  .layout-content {
+    flex: 1;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
   .site-footer svg {
     width: 15px; height: 15px;
     vertical-align: middle; fill: currentColor; display: block;
