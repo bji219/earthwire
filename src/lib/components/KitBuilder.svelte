@@ -127,6 +127,8 @@
         await new Promise(r => setTimeout(r, 0)); // yield to browser for repaint
       }
 
+      const exportName = $kit.name.trim() || 'new kit';
+
       // Build APPL metadata
       const slotTimings = $kit.slots.map((slot, i) => {
         if (!slot || !trimmedBuffers[i]) return null;
@@ -134,7 +136,7 @@
         return { trimDuration: effectiveEnd - slot.trimStart };
       });
       const applJson = buildOp1Metadata({
-        kitName: $kit.name,
+        kitName: exportName,
         deviceMode: mode,
         slots: slotTimings,
         sampleRate,
@@ -164,7 +166,7 @@
       const url  = URL.createObjectURL(blob);
       const a    = document.createElement('a');
       a.href     = url;
-      a.download = `${$kit.name.replace(/[^a-z0-9_-]/gi, '_')}.aif`;
+      a.download = `${exportName.replace(/[^a-z0-9_-]/gi, '_')}.aif`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -179,7 +181,7 @@
           `${s!.name} — ${s!.remoteSrc ?? 'freesound.org'}`
         );
         const txt = [
-          `Credits for "${$kit.name}" drum kit`,
+          `Credits for "${exportName}" drum kit`,
           '',
           'Freesound samples (attribution required):',
           ...lines,
@@ -190,7 +192,7 @@
         const turl = URL.createObjectURL(tblob);
         const ta = document.createElement('a');
         ta.href = turl;
-        ta.download = `${$kit.name.replace(/[^a-z0-9_-]/gi, '_')}-credits.txt`;
+        ta.download = `${exportName.replace(/[^a-z0-9_-]/gi, '_')}-credits.txt`;
         document.body.appendChild(ta);
         await new Promise(r => setTimeout(r, 100));
         ta.click();

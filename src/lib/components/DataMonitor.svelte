@@ -104,7 +104,7 @@
               </div>
 
               <div class="meter-wrap">
-                <SignalMeter bind:this={meters[i]} width={280} height={40} />
+                <SignalMeter bind:this={meters[i]} width="auto" height={40} />
               </div>
             </div>
 
@@ -288,7 +288,9 @@
     flex-shrink: 0;
   }
   .meter-wrap {
-    flex-shrink: 0;
+    flex: 1;
+    min-width: 200px;
+    max-width: 320px;
   }
   .seq-position {
     font-family: var(--font-mono);
@@ -309,5 +311,38 @@
     background: var(--accent);
     border-radius: 2px;
     transition: width 80ms;
+  }
+
+  @media (max-width: 768px) {
+    .toggle { padding: 0.75rem 1rem; }
+    .channels { padding: 0 0.75rem 0.75rem; }
+    .channel-card { padding: 0.65rem 0.75rem; }
+    .channel-header {
+      flex-wrap: wrap;
+      row-gap: 0.3rem;
+      gap: 0.4rem;
+    }
+    .source-name { font-size: 0.9rem; }
+    .field-name { font-size: 0.7rem; }
+    .time, .seq-position { font-size: 0.7rem; min-width: 0; }
+    .seq-position { margin-left: auto; }
+    .channel-body {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 0.55rem;
+    }
+    .values {
+      flex-wrap: wrap;
+      row-gap: 0.35rem;
+      gap: 0.4rem;
+      justify-content: space-between;
+    }
+    .meter-wrap {
+      min-width: 0;
+      max-width: none;
+      width: 100%;
+    }
+    .number.out-label { font-size: 0.7rem; }
+    .monitor-title { font-size: 1rem; }
   }
 </style>

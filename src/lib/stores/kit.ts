@@ -7,7 +7,7 @@ const STORAGE_KEY = 'earthwire-kit-v1';
 
 const DEFAULT_KIT: KitMeta = {
   deviceMode: 'op1field',
-  name: 'new kit',
+  name: '',
   slots: Array(24).fill(null),
 };
 
@@ -17,9 +17,13 @@ function loadMeta(): KitMeta {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
       const parsed = JSON.parse(raw) as Partial<KitMeta>;
+      // Migrate existing users off the prior literal default so the
+      // placeholder shows for kits that were never renamed.
+      const name = parsed.name === 'new kit' ? '' : (parsed.name ?? '');
       return {
         ...DEFAULT_KIT,
         ...parsed,
+        name,
         slots: parsed.slots ?? Array(24).fill(null),
       };
     }

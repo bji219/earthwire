@@ -124,4 +124,41 @@
     color: var(--text-muted);
     background: var(--bg-secondary);
   }
+
+  @media (max-width: 768px) {
+    .demo-synth-controls {
+      flex-wrap: wrap;
+      gap: 0.55rem;
+      padding: 0.6rem 0.75rem;
+    }
+    .title-label {
+      flex-basis: 100%;
+      font-size: 0.95rem;
+    }
+    label {
+      flex: 1 1 calc(50% - 0.3rem);
+      gap: 0.4rem;
+    }
+    label select,
+    label input[type='range'] {
+      flex: 1;
+      min-width: 0;
+    }
+    select {
+      font-size: 0.9rem;
+      padding: 0.45rem 0.5rem;
+      min-height: 36px;
+    }
+    input[type='range'] {
+      width: 100%;
+      height: 32px;
+    }
+    .mute-btn {
+      flex-basis: 100%;
+      margin-left: 0;
+      padding: 0.55rem 1rem;
+      font-size: 0.9rem;
+      min-height: 40px;
+    }
+  }
 </style>
