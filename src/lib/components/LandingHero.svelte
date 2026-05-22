@@ -1,6 +1,15 @@
 <script lang="ts">
   import { createEventDispatcher, onMount } from 'svelte';
 
+  export let overline: string = 'OP-1 Drum Kit Designer';
+  export let tagline: string = 'Build OP-1 / OP-1 Field drum kits from sounds across the planet.';
+  export let description: string = 'Search Freesound and Xeno-canto, trim and arrange 24 slots, then export a ready-to-load .aif for your OP-1. Or stream live scientific data into MIDI signals for your DAW.';
+  export let primaryLabel: string = 'Build a Kit';
+  export let secondaryLabel: string = 'Open Sequencer →';
+  export let secondaryHref: string = '/sequencer';
+  export let docsHref: string = '/docs/getting-started';
+  export let showMidiNote: boolean = false;
+
   const dispatch = createEventDispatcher();
 
   let isChromium = false;
@@ -16,24 +25,24 @@
 
 <div class="hero" class:visible>
   <div class="hero-content">
-    <p class="overline">Scientific Data → Sound</p>
+    <p class="overline">{overline}</p>
     <h1 class="title">Earthwire</h1>
-    <p class="tagline">Stream live data from the planet into your music.</p>
+    <p class="tagline">{tagline}</p>
 
-    <p class="description">
-      Live data from the planet, translated into sound. Build OP-1 Field drum kits from Freesound and Xeno-canto recordings.
-    </p>
+    <p class="description">{description}</p>
 
     <div class="cta-row">
       <button class="cta-primary" on:click={() => dispatch('start')}>
-        Start Listening
+        {primaryLabel}
       </button>
-      <a class="cta-secondary" href="/samples">
-        Build a Kit →
+      <a class="cta-secondary" href={secondaryHref}>
+        {secondaryLabel}
       </a>
     </div>
 
-    {#if !isChromium}
+    <a class="cta-tertiary" href={docsHref}>Getting Started →</a>
+
+    {#if showMidiNote && !isChromium}
       <p class="browser-note">
         The demo synth works in any browser. For MIDI output,
         use Chrome, Edge, Arc, or Brave.
@@ -131,6 +140,16 @@
     box-shadow: 0 8px 24px rgba(26, 107, 90, 0.2);
   }
   .cta-primary:active, .cta-secondary:active { transform: translateY(0); }
+  .cta-tertiary {
+    display: inline-block;
+    margin-top: 1.25rem;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    text-decoration: none;
+    font-family: var(--font-body);
+    transition: color 150ms;
+  }
+  .cta-tertiary:hover { color: var(--accent); text-decoration: underline; }
   .browser-note {
     margin-top: 1.5rem;
     font-size: 0.8rem;

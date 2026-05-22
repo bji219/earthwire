@@ -10,9 +10,11 @@
 
 There are two primary features:
 
-1. **Live Data → Audio engine** (`/` route): Add channels, each bound to a scientific data source and field, routed through a signal pipeline (normalizer → LFO → smoother → quantizer → threshold) to MIDI, CV, or the built-in demo synth.
+1. **Sample Library → OP-1 Drum Kit** (`/` route): Browse and search Freesound / Xeno-canto / local files, build a 24-slot drum kit, trim samples, and export as a valid `.aif` file that the OP-1 / OP-1 Field can read directly. This is the headline tool.
 
-2. **Sample Library → OP-1 Drum Kit** (`/samples` route): Browse and search Freesound / Xeno-canto / local files, build a 24-slot drum kit, trim samples, and export as a valid `.aif` file that the OP-1 / OP-1 Field can read directly.
+2. **Live Data → Audio engine** (`/sequencer` route): Add channels, each bound to a scientific data source and field, routed through a signal pipeline (normalizer → LFO → smoother → quantizer → threshold) to MIDI, CV, or the built-in demo synth.
+
+`/samples` is kept as a 308 redirect to `/` for backwards compatibility.
 
 ---
 
@@ -37,8 +39,9 @@ There are two primary features:
 ```
 src/
   routes/
-    +page.svelte              # Main app (data → audio engine)
-    samples/+page.svelte      # Sample browser + kit builder
+    +page.svelte              # Kit Designer (sample browser + kit builder) — landing
+    sequencer/+page.svelte    # Live data → audio engine
+    samples/+page.ts          # 308 redirect to /
     api/
       usgs/+server.ts         # USGS earthquake proxy
       ebird/+server.ts        # eBird activity proxy
@@ -225,7 +228,7 @@ All work is on `main`. Last commit: `957ded9`.
 - **Silent export fix**: `pcmCache` snapshots raw `Float32Array`s at decode time. `kit.ts` stores `{ sr, nch, ch: Float32Array[] }` and reconstructs `new AudioBuffer` on every `getBuffer()` call. Never use `ctx.createBuffer()` (audio thread pool) for stored samples — always `new AudioBuffer({...})` (JS heap).
 - **Cross-browser download fixes**: `application/octet-stream` MIME, anchor appended to body before `.click()`, `URL.revokeObjectURL` deferred 60s. Brave Shields zeroing detected via `'brave' in navigator`.
 - **OP-1 Field AIFF export**: AIFC sowt 16-bit, FVER chunk, 64-byte COMM, 4100-byte APPL (4096-byte JSON + newline), `0x7FFFFFFE` fixed-point positions, 24 slots always `start < end` (empty slots get 1-frame silence regions).
-- **Landing page**: Two CTAs — "Start Listening" and "Build a Kit →".
+- **Landing pages (per-route, first-visit only)**: Both `/` (Kit Designer) and `/sequencer` show a `LandingHero` on first visit, gated by `localStorage` keys `earthwire.seen.kit` and `earthwire.seen.sequencer`. `LandingHero` accepts copy/CTA props (`overline`, `tagline`, `description`, `primaryLabel`, `secondaryLabel`, `secondaryHref`, `docsHref`, `showMidiNote`). Each hero has a primary CTA, a secondary link to the other tool, and a tertiary "Getting Started →" link to `/docs/getting-started`.
 - **Site footer**: Creator links in `src/routes/+layout.svelte`.
 - **Xeno-canto v3 API**: Tagged query format (`en:robin`), multi-word types quoted (`type:"alarm call"`).
 

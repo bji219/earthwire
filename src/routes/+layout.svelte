@@ -12,8 +12,8 @@
 <div class="site-header">
   <a href="/" class="wordmark">Earthwire</a>
   <nav class="site-nav">
-    <a href="/" class="nav-link" class:active={$page.url.pathname === '/'}>Sequencer</a>
-    <a href="/samples" class="nav-link" class:active={$page.url.pathname === '/samples'}>Sampler</a>
+    <a href="/" class="nav-link" class:active={$page.url.pathname === '/'}>Kit Designer</a>
+    <a href="/sequencer" class="nav-link" class:active={$page.url.pathname === '/sequencer'}>Sequencer</a>
   </nav>
 </div>
 

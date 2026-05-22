@@ -10,14 +10,27 @@
   <h1>Getting Started with Earthwire</h1>
 
   <p class="intro">
-    Earthwire transforms scientific data — earthquakes, ocean sensors, ISS position, bird activity, solar wind —
-    into MIDI control signals for your DAW, synth, or modular rig.
+    Earthwire builds OP-1 and OP-1 Field drum kits from Freesound, Xeno-canto bird recordings, and your own audio —
+    and also streams live scientific data (earthquakes, ISS, ocean sensors, solar wind, bird activity) into MIDI signals for your DAW.
   </p>
 
   <section>
-    <h2>Quick Start</h2>
+    <h2>Build a Kit (OP-1 / OP-1 Field)</h2>
     <ol>
-      <li>Click <strong>Start Listening</strong> on the landing page to initialize the audio engine.</li>
+      <li>Open the <strong>Kit Designer</strong> (the home page). On your first visit you'll see a landing screen — click <strong>Build a Kit</strong> to enter.</li>
+      <li>In the <strong>Sample Browser</strong> on the left, search <strong>Freesound</strong> for drum and instrument samples, or <strong>Bird Sounds</strong> (Xeno-canto) for field recordings. You can also upload your own files under <strong>My Sounds</strong>.</li>
+      <li>Drag a sample onto one of the 24 slots in the <strong>Kit Builder</strong> on the right, or click a sample to preview and then drop it into the next empty slot.</li>
+      <li>Click the <strong>✂ trim</strong> icon on a slot to open the waveform editor and set <strong>trimStart</strong>/<strong>trimEnd</strong> for that slot.</li>
+      <li>Pick a <strong>device mode</strong> — OP-1 (mono, 12s max) or OP-1 Field (stereo, 20s max).</li>
+      <li>Click <strong>Export</strong> to download a ready-to-load <code>.aif</code> drum kit. If any slots come from Freesound, a <code>-credits.txt</code> sidecar is downloaded too.</li>
+      <li>Copy the <code>.aif</code> into your OP-1 / OP-1 Field's drum folder and load it like any other kit.</li>
+    </ol>
+  </section>
+
+  <section>
+    <h2>Stream Live Data → MIDI (Sequencer)</h2>
+    <ol>
+      <li>Open the <strong>Sequencer</strong> from the top nav (or go to <code>/sequencer</code>). On your first visit, click <strong>Start Listening</strong> to initialize the audio engine.</li>
       <li>Press <strong>Play</strong> in the transport bar to start the sequencer. The demo synth will activate if any channel is routed to it.</li>
       <li>Use the <strong>source dropdown</strong> on a channel strip to switch between data sources (Earthquakes, ISS Position, Bird Activity, MBARI Ocean, Solar Wind). Click the <strong>info icon</strong> next to the source to visit the data provider's website.</li>
       <li>Choose a <strong>field</strong> — each source exposes different data dimensions (magnitude, depth, temperature, etc.).</li>
