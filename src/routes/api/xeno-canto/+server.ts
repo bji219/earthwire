@@ -1,11 +1,12 @@
 // src/routes/api/xeno-canto/+server.ts
 import { json, error } from '@sveltejs/kit';
-import { XENO_CANTO_KEY } from '$env/static/private';
+import { env } from '$env/dynamic/private';
 import type { RequestHandler } from './$types';
 
 const BASE = 'https://xeno-canto.org/api/3/recordings';
 
 export const GET: RequestHandler = async ({ url }) => {
+  const XENO_CANTO_KEY = env.XENO_CANTO_KEY;
   if (!XENO_CANTO_KEY) {
     throw error(503, 'Xeno-canto API key not configured. Add XENO_CANTO_KEY to your .env file — get one at xeno-canto.org/account');
   }

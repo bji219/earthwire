@@ -1,6 +1,6 @@
 // src/routes/api/freesound/+server.ts
 import { json, error } from '@sveltejs/kit';
-import { FREESOUND_CLIENT_ID, FREESOUND_API_KEY } from '$env/static/private';
+import { env } from '$env/dynamic/private';
 import type { RequestHandler } from './$types';
 
 const SEARCH_BASE = 'https://freesound.org/apiv2/search/text/';
@@ -9,7 +9,7 @@ export const GET: RequestHandler = async ({ url }) => {
   const action = url.searchParams.get('action') ?? 'search';
 
   // Prefer the API key for token auth; fall back to client ID for backwards compat
-  const apiKey = FREESOUND_API_KEY ?? FREESOUND_CLIENT_ID ?? '';
+  const apiKey = env.FREESOUND_API_KEY ?? env.FREESOUND_CLIENT_ID ?? '';
 
   if (action === 'search' && !apiKey) {
     throw error(503, 'Freesound API key not configured. Add FREESOUND_API_KEY to your .env file — get one at freesound.org/apiv2/apply/');
