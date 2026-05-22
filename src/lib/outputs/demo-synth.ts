@@ -14,7 +14,12 @@ export class DemoSynth {
   }
 
   async init(): Promise<void> {
-    this.ctx = new AudioContext();
+    const Ctor: typeof AudioContext =
+      (window as any).AudioContext || (window as any).webkitAudioContext;
+    this.ctx = new Ctor();
+    if (this.ctx.state === 'suspended') {
+      try { await this.ctx.resume(); } catch { /* will retry on first start() */ }
+    }
 
     this.osc1 = this.ctx.createOscillator();
     this.osc1.type = 'sawtooth';
@@ -64,6 +69,9 @@ export class DemoSynth {
 
   start(): void {
     if (!this.masterGain || !this.ctx) return;
+    if (this.ctx.state === 'suspended') {
+      this.ctx.resume().catch(err => console.warn('[demo-synth] resume failed', err));
+    }
     this.masterGain.gain.setTargetAtTime(1, this.ctx.currentTime, 0.1);
     this._active = true;
   }

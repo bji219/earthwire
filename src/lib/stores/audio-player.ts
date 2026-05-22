@@ -11,7 +11,17 @@ function createAudioPlayer() {
   let currentSrc: AudioBufferSourceNode | null = null;
 
   function getCtx(): AudioContext {
-    if (!ctx || ctx.state === 'closed') ctx = new AudioContext();
+    if (!ctx || ctx.state === 'closed') {
+      const Ctor: typeof AudioContext =
+        (window as any).AudioContext || (window as any).webkitAudioContext;
+      ctx = new Ctor();
+    }
+    // iOS Safari and some Android browsers start the context in 'suspended'
+    // state. resume() must be called synchronously inside the user gesture
+    // (i.e. before any awaits in the caller) or playback stays silent.
+    if (ctx.state === 'suspended') {
+      ctx.resume().catch(err => console.warn('[audio-player] resume failed', err));
+    }
     return ctx;
   }
 
@@ -31,8 +41,9 @@ function createAudioPlayer() {
   ) {
     stop();
     store.set({ playingKey: null, loadingKey: key });
+    // Acquire context synchronously so resume() lands inside the gesture.
+    const audioCtx = getCtx();
     try {
-      const audioCtx = getCtx();
       const buffer = await getBuffer(audioCtx);
       if (get(store).loadingKey !== key) return; // cancelled by stop() or new play()
       const src = audioCtx.createBufferSource();
@@ -47,7 +58,8 @@ function createAudioPlayer() {
           store.set({ playingKey: null, loadingKey: null });
         }
       };
-    } catch {
+    } catch (err) {
+      console.warn('[audio-player] play failed', err);
       store.set({ playingKey: null, loadingKey: null });
     }
   }
