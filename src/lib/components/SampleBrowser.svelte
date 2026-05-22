@@ -71,4 +71,14 @@
   }
   .tab.active { color: var(--text-primary); border-bottom-color: var(--text-primary); }
   .tab-content { flex: 1; overflow: hidden; display: flex; flex-direction: column; }
+
+  @media (max-width: 768px) {
+    .sample-browser { height: auto; min-height: 100%; }
+    .tab {
+      padding: 0.75rem 1rem;
+      font-size: 0.9rem;
+      min-height: 44px;
+    }
+    .tab-content { overflow: visible; }
+  }
 </style>

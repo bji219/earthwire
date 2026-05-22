@@ -80,7 +80,7 @@
   }
   .title {
     font-family: var(--font-display);
-    font-size: 4.5rem;
+    font-size: clamp(2.75rem, 11vw, 4.5rem);
     font-weight: 400;
     margin: 0 0 0.75rem;
     color: var(--text-primary);
@@ -155,5 +155,22 @@
     font-size: 0.8rem;
     color: var(--text-muted);
     max-width: 400px;
+  }
+
+  @media (max-width: 768px) {
+    .hero { padding: 1.5rem 1rem; }
+    .tagline { font-size: 1.1rem; margin-bottom: 1.25rem; }
+    .description { font-size: 0.92rem; margin-bottom: 2rem; }
+    .cta-primary, .cta-secondary {
+      padding: 0.85rem 1.5rem;
+      font-size: 0.95rem;
+      min-height: 44px;
+    }
+    .cta-row { width: 100%; }
+    .cta-tertiary {
+      font-size: 0.9rem;
+      padding: 0.5rem;
+      min-height: 36px;
+    }
   }
 </style>

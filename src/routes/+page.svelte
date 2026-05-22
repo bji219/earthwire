@@ -74,4 +74,23 @@
     flex: 1; min-width: 380px; max-width: 45%; overflow: hidden;
     display: flex; flex-direction: column;
   }
+
+  @media (max-width: 768px) {
+    .samples-page {
+      flex-direction: column;
+      overflow: visible;
+    }
+    .browser-panel {
+      max-width: 100%;
+      width: 100%;
+      border-right: none;
+      border-bottom: 1px solid var(--border);
+      min-height: 60vh;
+    }
+    .kit-panel {
+      max-width: 100%;
+      min-width: 0;
+      width: 100%;
+    }
+  }
 </style>

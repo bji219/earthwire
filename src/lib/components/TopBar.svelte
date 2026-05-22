@@ -250,4 +250,36 @@
     color: var(--text-muted);
     font-size: 0.8rem;
   }
+
+  @media (max-width: 768px) {
+    .topbar {
+      flex-wrap: wrap;
+      padding: 0.55rem 0.75rem;
+      gap: 0.6rem;
+      row-gap: 0.5rem;
+    }
+    .controls {
+      margin-left: 0;
+      width: 100%;
+      gap: 0.55rem;
+      flex-wrap: wrap;
+      justify-content: flex-start;
+    }
+    .transport-btn {
+      width: 2.5rem;
+      height: 2.5rem;
+    }
+    input[type='number'],
+    select,
+    button {
+      font-size: 0.85rem;
+      padding: 0.45rem 0.55rem;
+      min-height: 36px;
+    }
+    input[type='number'] { width: 4rem; }
+    input[type='range'] { width: 6rem; height: 32px; }
+    .label-text { font-size: 0.7rem; }
+    .actions { width: 100%; gap: 0.5rem; }
+    .actions button { flex: 1; }
+  }
 </style>

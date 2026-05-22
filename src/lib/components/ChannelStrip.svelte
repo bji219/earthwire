@@ -557,4 +557,73 @@
     color: var(--danger);
     background: rgba(196, 91, 74, 0.08);
   }
+
+  @media (max-width: 768px) {
+    .channel-strip {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 0.55rem;
+      padding: 0.75rem;
+      position: relative;
+    }
+    .channel-index {
+      align-self: flex-start;
+    }
+    .source-section,
+    .processing-section,
+    .output-section {
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      width: 100%;
+    }
+    .source-section > select,
+    .output-section > select {
+      flex: 1 1 auto;
+      min-width: 8rem;
+    }
+    .processing-section label {
+      flex: 1 1 calc(50% - 0.25rem);
+      gap: 0.35rem;
+    }
+    select,
+    .midi-num-input {
+      font-size: 0.9rem;
+      padding: 0.45rem 0.55rem;
+      min-height: 36px;
+    }
+    input[type='range'] {
+      flex: 1;
+      width: auto;
+      min-width: 5rem;
+      height: 32px;
+    }
+    .info-btn {
+      padding: 0.5rem;
+      min-width: 36px;
+      min-height: 36px;
+    }
+    .loc-btn {
+      padding: 0.55rem 0.7rem;
+      min-height: 36px;
+      min-width: 36px;
+    }
+    .loc-clear-btn {
+      padding: 0.4rem 0.55rem;
+      min-height: 32px;
+      min-width: 32px;
+    }
+    .meter {
+      width: 100%;
+      flex: none;
+      height: 8px;
+    }
+    .remove-btn {
+      position: absolute;
+      top: 0.5rem;
+      right: 0.5rem;
+      padding: 0.5rem;
+      min-width: 36px;
+      min-height: 36px;
+    }
+  }
 </style>

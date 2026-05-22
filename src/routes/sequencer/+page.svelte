@@ -297,4 +297,22 @@
   .daw-banner a:hover {
     text-decoration: underline;
   }
+
+  @media (max-width: 768px) {
+    .channels {
+      padding: 0 0.75rem 1rem;
+    }
+    .section-heading {
+      font-size: 1.1rem;
+      margin: 1rem 0 0.5rem;
+    }
+    .add-channel {
+      min-height: 44px;
+      font-size: 0.85rem;
+    }
+    .daw-banner {
+      font-size: 0.72rem;
+      padding: 0.6rem 0.5rem;
+    }
+  }
 </style>

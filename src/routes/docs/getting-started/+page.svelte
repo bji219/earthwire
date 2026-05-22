@@ -209,4 +209,13 @@
   strong {
     font-weight: 600;
   }
+
+  @media (max-width: 768px) {
+    .docs { padding: 1.5rem 1rem; }
+    h1 { font-size: 1.6rem; }
+    h2 { font-size: 1.2rem; margin-top: 2rem; }
+    .intro { font-size: 1rem; }
+    ol { padding-left: 1.25rem; }
+    li { font-size: 0.95rem; }
+  }
 </style>

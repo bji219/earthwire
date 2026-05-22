@@ -328,4 +328,31 @@
   .loading-more {
     text-align: center; padding: 0.75rem; font-size: 0.7rem; color: var(--text-muted);
   }
+
+  @media (max-width: 768px) {
+    .results-list { overflow-y: visible; }
+    .search-bar { padding: 0.5rem 0.75rem; flex-wrap: wrap; gap: 0.4rem; }
+    .search-bar input { font-size: 0.95rem; padding: 0.55rem 0.6rem; min-height: 40px; }
+    .search-bar button { min-height: 40px; padding: 0.55rem 0.85rem; font-size: 0.9rem; }
+    .country-input { flex: 1 1 5rem !important; }
+    .result-item {
+      min-height: 56px;
+      padding: 0.65rem 0.85rem;
+      gap: 0.75rem;
+    }
+    .play-btn {
+      width: 36px;
+      height: 36px;
+      font-size: 0.85rem;
+    }
+    .result-name { font-size: 0.9rem; }
+    .result-meta { font-size: 0.75rem; }
+    .result-dur { font-size: 0.8rem; }
+    .rec-type { font-size: 0.7rem; }
+    .add-btn {
+      font-size: 0.85rem;
+      padding: 0.5rem 0.85rem;
+      min-height: 36px;
+    }
+  }
 </style>

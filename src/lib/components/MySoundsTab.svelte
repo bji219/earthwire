@@ -263,4 +263,33 @@
     color: var(--text-muted); flex-shrink: 0;
   }
   .del-btn:hover { color: #c0392b; }
+
+  @media (max-width: 768px) {
+    .my-sounds { height: auto; overflow-y: visible; }
+    .result-item {
+      min-height: 56px;
+      padding: 0.65rem 0.85rem;
+      gap: 0.75rem;
+    }
+    .play-btn {
+      width: 36px;
+      height: 36px;
+      font-size: 0.85rem;
+    }
+    .result-name { font-size: 0.9rem; }
+    .result-meta { font-size: 0.75rem; }
+    .result-dur { font-size: 0.8rem; }
+    .mini-wave { display: none; }
+    .add-btn {
+      font-size: 0.85rem;
+      padding: 0.5rem 0.85rem;
+      min-height: 36px;
+    }
+    .del-btn {
+      font-size: 0.85rem;
+      padding: 0.5rem 0.6rem;
+      min-height: 36px;
+      min-width: 36px;
+    }
+  }
 </style>

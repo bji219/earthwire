@@ -102,4 +102,23 @@
     vertical-align: middle; fill: currentColor; display: block;
   }
   .sep { opacity: 0.4; }
+
+  @media (max-width: 768px) {
+    .layout-shell {
+      height: auto;
+      min-height: 100dvh;
+      overflow: visible;
+    }
+    .layout-content {
+      overflow: visible;
+    }
+    .site-header {
+      padding: 0.55rem 1rem;
+      gap: 1rem;
+    }
+    .nav-link {
+      padding: 0.5rem 0.7rem;
+      font-size: 0.8rem;
+    }
+  }
 </style>

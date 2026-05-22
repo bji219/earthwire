@@ -18,7 +18,10 @@
   }>();
 
   let canvas: HTMLCanvasElement;
+  let canvasWrap: HTMLDivElement;
+  let resizeObserver: ResizeObserver | null = null;
   const NUM_BARS = 120;
+  const CANVAS_HEIGHT = 60;
 
   // View window — only changed by zoom buttons
   let viewStart = 0;
@@ -32,12 +35,27 @@
     ? Math.max(0, Math.min(100, ((trimEnd - viewStart) / (viewEnd - viewStart)) * 100))
     : 100;
 
+  function sizeCanvasToWrap() {
+    if (!canvas || !canvasWrap) return;
+    const w = Math.max(1, Math.floor(canvasWrap.clientWidth));
+    if (canvas.width !== w) {
+      canvas.width = w;
+      canvas.height = CANVAS_HEIGHT;
+      redraw();
+    }
+  }
+
   onMount(() => {
-    canvas.width  = 600;
-    canvas.height = 60;
+    canvas.height = CANVAS_HEIGHT;
     viewStart = 0;
     viewEnd = fullDuration;
-    redraw();
+    sizeCanvasToWrap();
+    resizeObserver = new ResizeObserver(() => sizeCanvasToWrap());
+    resizeObserver.observe(canvasWrap);
+    return () => {
+      resizeObserver?.disconnect();
+      resizeObserver = null;
+    };
   });
 
   // Call this any time the view window changes.
@@ -135,8 +153,8 @@
 <svelte:window on:pointermove={onPointerMove} on:pointerup={onPointerUp} />
 
 <div class="waveform-expand">
-  <div class="canvas-wrap">
-    <!-- No width/height attributes — canvas dimensions set once in onMount -->
+  <div class="canvas-wrap" bind:this={canvasWrap}>
+    <!-- No width/height attributes — canvas dimensions managed imperatively via ResizeObserver -->
     <canvas bind:this={canvas} style="width:100%;height:100%;display:block"></canvas>
 
     <div class="trim-shade trim-shade-left"  style="width:{startPct}%"></div>
@@ -215,4 +233,30 @@
     cursor: pointer; background: #222;
   }
   .preview-btn:hover { border-color: #4a7c59; color: #4a7c59; }
+
+  @media (max-width: 768px) {
+    .waveform-expand { padding: 0.6rem 0.65rem 0.75rem; }
+    .canvas-wrap { height: 64px; }
+    .handle { width: 14px; height: 30px; }
+    .zoom-btns { gap: 0.4rem; }
+    .zoom-btns button {
+      font-size: 0.8rem;
+      padding: 0.4rem 0.65rem;
+      min-height: 36px;
+      min-width: 36px;
+    }
+    .controls-row { flex-wrap: wrap; gap: 0.5rem; margin-top: 0.5rem; }
+    .ctrl-label { font-size: 0.75rem; }
+    .ctrl-input {
+      width: 4.5rem;
+      font-size: 0.85rem;
+      padding: 0.4rem 0.5rem;
+      min-height: 36px;
+    }
+    .preview-btn {
+      font-size: 0.85rem;
+      padding: 0.45rem 0.85rem;
+      min-height: 36px;
+    }
+  }
 </style>

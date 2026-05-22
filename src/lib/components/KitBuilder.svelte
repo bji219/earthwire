@@ -368,4 +368,35 @@
     font-size: 0.6rem; color: var(--text-muted); padding: 0.4rem 1rem;
     border-top: 1px solid var(--border-light, #eee); flex-shrink: 0;
   }
+
+  @media (max-width: 768px) {
+    .kit-builder { height: auto; min-height: 100%; }
+    .slot-list { overflow-y: visible; }
+    .kit-header { padding: 0.65rem 0.85rem; }
+    .kit-name { width: 60%; font-size: 0.85rem; }
+    .kit-label { font-size: 0.85rem; }
+    .device-tab {
+      padding: 0.65rem 0;
+      font-size: 0.8rem;
+      min-height: 44px;
+    }
+    .device-sub { font-size: 0.65rem; }
+    .kit-footer {
+      padding: 0.75rem 0.85rem;
+    }
+    .slot-count { font-size: 0.78rem; }
+    .export-btn {
+      font-size: 0.9rem;
+      padding: 0.5rem 0.85rem;
+      min-height: 40px;
+    }
+    .bulk-bar { font-size: 0.8rem; padding: 0.55rem 0.85rem; gap: 0.65rem; }
+    .bulk-clear-btn,
+    .bulk-deselect-btn {
+      font-size: 0.8rem;
+      padding: 0.35rem 0.7rem;
+      min-height: 32px;
+    }
+    .hint { font-size: 0.7rem; padding: 0.55rem 0.85rem; }
+  }
 </style>

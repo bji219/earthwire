@@ -236,4 +236,39 @@
   .trim-btn.open { opacity: 1; color: var(--accent, #4a7c59); }
   .slot-row.active .trim-btn { color: #999; }
   .slot-row.active .trim-btn.open { color: #4a7c59; }
+
+  @media (max-width: 768px) {
+    .slot-row {
+      min-height: 48px;
+      gap: 0.25rem;
+      padding: 0.25rem 0;
+    }
+    .slot-num {
+      font-size: 0.8rem;
+      width: 2rem;
+      padding-right: 0.4rem;
+    }
+    .dot { width: 10px; height: 10px; }
+    .slot-name {
+      font-size: 0.9rem;
+      padding: 0 0.4rem;
+    }
+    .mini-wave { display: none; }
+    .slot-dur {
+      font-size: 0.75rem;
+      width: 2.6rem;
+      padding-right: 0.35rem;
+    }
+    .clear-btn,
+    .trim-btn {
+      opacity: 1;
+      font-size: 0.95rem;
+      padding: 0.5rem 0.65rem;
+      min-width: 36px;
+      min-height: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+  }
 </style>
