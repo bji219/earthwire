@@ -17,16 +17,20 @@ interface MetadataOptions {
 // and joseph-holland/op-patchstudio. The `12000` forward default is preserved
 // from this codebase's working baseline (matched against 808.aif).
 const PLAYMODE_CODES: Record<SlotPlayMode, number> = {
-  oneshot: 4096,
-  loop:    20480,
-  gate:    8192,
-  reverse: 4096,
+  oneshot:    8192,   // confirmed
+  gate:       4096,   // confirmed
+  loop:       28672,  // confirmed: 0x7000, extracted from OP-1 Field kit binary
+  gravity:    20480,  // confirmed
+  revoneshot: 12288,  // confirmed
+  revgate:    4096,   // confirmed
 };
 const REVERSE_CODES: Record<SlotPlayMode, number> = {
-  oneshot: 12000,
-  loop:    12000,
-  gate:    12000,
-  reverse: 18432,
+  oneshot:    12000,
+  gate:       12000,
+  loop:       12000,
+  gravity:    12000,
+  revoneshot: 18432,
+  revgate:    18432,
 };
 
 // OP-1 / OP-1 Field encodes sample positions as scaled fixed-point integers.
@@ -58,6 +62,13 @@ export function buildOp1Metadata(opts: MetadataOptions): string {
     if (s) filledFrames += Math.round(s.trimDuration * sampleRate);
   }
 
+  // Math.round() accumulation across many slots can push filledFrames 1 frame
+  // over the per-device budget, causing end[last_empty] > OP1_MAX. Clamp so
+  // (safeFilledFrames + emptyCount) * scale never exceeds OP1_MAX.
+  const emptyCount = slots.filter(s => !s).length;
+  const maxTotalFrames = sampleRate * DEVICE_MAX_SECONDS[deviceMode];
+  const safeFilledFrames = Math.min(filledFrames, maxTotalFrames - emptyCount);
+
   const start: number[] = [];
   const end:   number[] = [];
   const playmode: number[] = [];
@@ -75,7 +86,7 @@ export function buildOp1Metadata(opts: MetadataOptions): string {
       playmode.push(PLAYMODE_CODES[mode]);
       reverse.push(REVERSE_CODES[mode]);
     } else {
-      const s = filledFrames + emptyIdx;
+      const s = safeFilledFrames + emptyIdx;
       start.push(Math.floor(s * scale));
       end.push(Math.floor((s + 1) * scale));
       playmode.push(PLAYMODE_CODES.oneshot);

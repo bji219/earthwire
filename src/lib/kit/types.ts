@@ -4,23 +4,27 @@ export type DeviceMode = 'op1' | 'op1field';
 export type SourceType = 'local' | 'freesound' | 'xeno-canto';
 
 /** OP-1 per-slot playback behaviour. Cycled by the toggle button on SlotRow. */
-export type SlotPlayMode = 'oneshot' | 'loop' | 'gate' | 'reverse';
+export type SlotPlayMode = 'oneshot' | 'gate' | 'loop' | 'gravity' | 'revoneshot' | 'revgate';
 
 export const PLAY_MODE_DEFAULT: SlotPlayMode = 'oneshot';
-export const PLAY_MODE_CYCLE: SlotPlayMode[] = ['oneshot', 'loop', 'gate', 'reverse'];
+export const PLAY_MODE_CYCLE: SlotPlayMode[] = ['oneshot', 'gate', 'loop', 'gravity', 'revoneshot', 'revgate'];
 
 export const PLAY_MODE_ICON: Record<SlotPlayMode, string> = {
-  oneshot: '▶',
-  loop:    '∞',
-  gate:    '⇥',
-  reverse: '◀',
+  oneshot:    '⇥',
+  gate:       '▶',
+  loop:       '∞',
+  gravity:    'G',
+  revoneshot: '⇤',
+  revgate:    '◀',
 };
 
 export const PLAY_MODE_LABEL: Record<SlotPlayMode, string> = {
-  oneshot: 'one-shot',
-  loop:    'loop',
-  gate:    'hold (gate)',
-  reverse: 'reverse',
+  oneshot:    'one-shot',
+  gate:       'gate',
+  loop:       'loop',
+  gravity:    'gravity',
+  revoneshot: 'rev. one-shot',
+  revgate:    'rev. gate',
 };
 
 export interface SlotMeta {

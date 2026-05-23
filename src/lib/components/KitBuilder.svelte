@@ -88,7 +88,7 @@
       async () => buf,
       slot.trimStart,
       slot.trimEnd,
-      slot.playMode === 'reverse',
+      slot.playMode === 'revoneshot' || slot.playMode === 'revgate',
     );
   }
 
@@ -134,13 +134,39 @@
         await new Promise(r => setTimeout(r, 0)); // yield to browser for repaint
       }
 
+      // Robust budget clamp: Math.round() accumulation can push total 1 frame
+      // over budget, causing the last empty slot's APPL end position to exceed
+      // OP1_MAX and the OP-1 Field firmware to reject the metadata block.
+      // Cap the last filled buffer so totalFilledFrames + emptyCount ≤ maxTotalFrames.
+      const maxTotalFrames = Math.floor(maxSeconds * sampleRate);
+      const budgetFrames   = maxTotalFrames - emptyCount;
+      let totalFilledFrames = trimmedBuffers.reduce((s, b) => s + (b ? b.length : 0), 0);
+      if (totalFilledFrames > budgetFrames) {
+        const excess = totalFilledFrames - budgetFrames;
+        for (let i = trimmedBuffers.length - 1; i >= 0; i--) {
+          const buf = trimmedBuffers[i];
+          if (!buf) continue;
+          const newLen = buf.length - excess;
+          if (newLen <= 0) {
+            trimmedBuffers[i] = null;
+          } else {
+            const clamped = new AudioBuffer({ numberOfChannels: numChannels, length: newLen, sampleRate });
+            for (let ch = 0; ch < numChannels; ch++) {
+              clamped.getChannelData(ch).set(buf.getChannelData(ch).subarray(0, newLen));
+            }
+            trimmedBuffers[i] = clamped;
+          }
+          break;
+        }
+      }
+
       const exportName = $kit.name.trim() || 'new kit';
 
-      // Build APPL metadata
-      const slotTimings = $kit.slots.map((slot, i) => {
-        if (!slot || !trimmedBuffers[i]) return null;
-        const effectiveEnd = effectiveTrimEnds[i] ?? slot.trimEnd;
-        return { trimDuration: effectiveEnd - slot.trimStart, playMode: slot.playMode };
+      // Build APPL metadata from actual buffer lengths (not float duration estimates).
+      // This ensures positions exactly match the stitched audio after clamping.
+      const slotTimings = trimmedBuffers.map((buf, i) => {
+        if (!buf) return null;
+        return { trimDuration: buf.length / sampleRate, playMode: $kit.slots[i]?.playMode };
       });
       const applJson = buildOp1Metadata({
         kitName: exportName,

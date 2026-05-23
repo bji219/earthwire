@@ -25,8 +25,15 @@ function loadMeta(): KitMeta {
       const parsed = JSON.parse(raw) as Partial<KitMeta>;
       const name = parsed.name === 'new kit' ? '' : (parsed.name ?? '');
       const rawSlots = parsed.slots ?? Array(24).fill(null);
-      const slots = rawSlots.map(s =>
-        s ? { playMode: PLAY_MODE_DEFAULT, ...s } as SlotMeta : null
+      // Migrate old playMode values: loop→gravity, gate→loop, reverse→revgate
+      const migrateMode = (m: string | undefined): SlotPlayMode => {
+        if (m === 'loop')    return 'gravity';
+        if (m === 'gate')    return 'loop';
+        if (m === 'reverse') return 'revgate';
+        return (m as SlotPlayMode) ?? PLAY_MODE_DEFAULT;
+      };
+      const slots = rawSlots.map((s: any) =>
+        s ? { ...s, playMode: migrateMode(s.playMode) } as SlotMeta : null
       );
       return { ...DEFAULT_KIT, ...parsed, name, slots };
     }
