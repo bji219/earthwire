@@ -120,6 +120,47 @@ describe('buildOp1Metadata', () => {
     expect(meta.end[23]).toBe(Math.floor((filledFrames + 23) * scale));
   });
 
+  it('defaults playmode to one-shot (4096) and reverse to forward (12000) for empty slots', () => {
+    const result = buildOp1Metadata({
+      kitName: 'test',
+      deviceMode: 'op1field',
+      slots: Array(24).fill(null),
+      sampleRate: 44100,
+    });
+    const meta = parseResult(result);
+    for (let i = 0; i < 24; i++) {
+      expect(meta.playmode[i]).toBe(4096);
+      expect(meta.reverse[i]).toBe(12000);
+    }
+  });
+
+  it('emits per-slot playmode and reverse codes for all four modes', () => {
+    const slots = Array(24).fill(null) as (null | { trimDuration: number; playMode?: 'oneshot' | 'loop' | 'gate' | 'reverse' })[];
+    slots[0] = { trimDuration: 0.5, playMode: 'oneshot' };
+    slots[1] = { trimDuration: 0.5, playMode: 'loop' };
+    slots[2] = { trimDuration: 0.5, playMode: 'gate' };
+    slots[3] = { trimDuration: 0.5, playMode: 'reverse' };
+    const result = buildOp1Metadata({
+      kitName: 'test',
+      deviceMode: 'op1field',
+      slots,
+      sampleRate: 44100,
+    });
+    const meta = parseResult(result);
+
+    // playmode: oneshot=4096, loop=20480, gate=8192, reverse(one-shot)=4096
+    expect(meta.playmode[0]).toBe(4096);
+    expect(meta.playmode[1]).toBe(20480);
+    expect(meta.playmode[2]).toBe(8192);
+    expect(meta.playmode[3]).toBe(4096);
+
+    // reverse: forward=12000 for first three, 18432 for the reverse slot
+    expect(meta.reverse[0]).toBe(12000);
+    expect(meta.reverse[1]).toBe(12000);
+    expect(meta.reverse[2]).toBe(12000);
+    expect(meta.reverse[3]).toBe(18432);
+  });
+
   it('result is exactly 4096 bytes, space-padded, no null terminator', () => {
     const result = buildOp1Metadata({
       kitName: 'test',

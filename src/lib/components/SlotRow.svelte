@@ -5,7 +5,10 @@
   import WaveformTrimA from './WaveformTrimA.svelte';
   import WaveformTrimB from './WaveformTrimB.svelte';
   import { extractPeaks, peaksToSvgPath } from '$lib/kit/audio-processor';
-  import { SLOT_COLORS, SLOT_NOTES, formatDuration } from '$lib/kit/types';
+  import {
+    SLOT_COLORS, SLOT_NOTES, formatDuration,
+    PLAY_MODE_ICON, PLAY_MODE_LABEL,
+  } from '$lib/kit/types';
   import { dragPayload } from '$lib/stores/drag';
   import type { SlotMeta } from '$lib/kit/types';
 
@@ -21,6 +24,7 @@
     clear: void;
     trim: { trimStart: number; trimEnd: number };
     preview: void;
+    cyclemode: void;
     fill: { index: number; name: string; sourceType: 'local' | 'freesound' | 'xeno-canto'; remoteSrc?: string; buffer: AudioBuffer };
     reorder: { fromIndex: number; toIndex: number };
   }>();
@@ -110,6 +114,13 @@
         on:click|stopPropagation={() => (editing = !editing)}
         title="Open trim editor"
       >✂</button>
+      <button
+        class="mode-btn mode-{slot.playMode}"
+        class:active={slot.playMode !== 'oneshot'}
+        on:click|stopPropagation={() => dispatch('cyclemode')}
+        title="Playback: {PLAY_MODE_LABEL[slot.playMode]} (click to cycle)"
+        aria-label="Playback mode: {PLAY_MODE_LABEL[slot.playMode]}"
+      >{PLAY_MODE_ICON[slot.playMode]}</button>
     {/if}
 
     <span class="slot-dur">
@@ -206,11 +217,19 @@
 
   .mini-wave { width: 70px; height: 22px; flex-shrink: 0; }
 
-  .playmode-arrow {
-    font-size: 0.72rem; color: var(--text-muted);
-    width: 1.2rem; text-align: center; flex-shrink: 0;
+  .mode-btn {
+    font-size: 0.72rem; color: var(--text-muted); background: none;
+    border: none; cursor: pointer; padding: 0 0.4rem; flex-shrink: 0;
+    width: 1.4rem; text-align: center; line-height: 1;
+    opacity: 0;
   }
-  .slot-row.active .playmode-arrow { color: #555; }
+  .slot-row:hover .mode-btn { opacity: 1; }
+  .mode-btn.active { opacity: 1; color: var(--accent, #4a7c59); }
+  .slot-row.active .mode-btn { color: #999; }
+  .slot-row.active .mode-btn.active { color: #4a7c59; }
+  .mode-btn.mode-loop { font-size: 0.65rem; }
+  .mode-btn.mode-reverse { color: var(--accent, #4a7c59); }
+  .mode-btn.mode-gate { font-size: 0.6rem; }
 
   .slot-dur {
     font-size: 0.68rem; color: var(--text-muted);
@@ -260,7 +279,8 @@
       padding-right: 0.35rem;
     }
     .clear-btn,
-    .trim-btn {
+    .trim-btn,
+    .mode-btn {
       opacity: 1;
       font-size: 0.95rem;
       padding: 0.5rem 0.65rem;

@@ -1,7 +1,10 @@
 // src/lib/stores/kit.ts
 import { writable, get } from 'svelte/store';
 import { browser } from '$app/environment';
-import type { KitMeta, SlotMeta, DeviceMode } from '$lib/kit/types';
+import {
+  PLAY_MODE_CYCLE, PLAY_MODE_DEFAULT,
+  type KitMeta, type SlotMeta, type DeviceMode, type SlotPlayMode,
+} from '$lib/kit/types';
 
 const STORAGE_KEY = 'earthwire-kit-v1';
 const PCM_DB_NAME = 'earthwire-kit-pcm';
@@ -20,15 +23,12 @@ function loadMeta(): KitMeta {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
       const parsed = JSON.parse(raw) as Partial<KitMeta>;
-      // Migrate existing users off the prior literal default so the
-      // placeholder shows for kits that were never renamed.
       const name = parsed.name === 'new kit' ? '' : (parsed.name ?? '');
-      return {
-        ...DEFAULT_KIT,
-        ...parsed,
-        name,
-        slots: parsed.slots ?? Array(24).fill(null),
-      };
+      const rawSlots = parsed.slots ?? Array(24).fill(null);
+      const slots = rawSlots.map(s =>
+        s ? { playMode: PLAY_MODE_DEFAULT, ...s } as SlotMeta : null
+      );
+      return { ...DEFAULT_KIT, ...parsed, name, slots };
     }
   } catch {}
   return { ...DEFAULT_KIT, slots: Array(24).fill(null) };
@@ -178,6 +178,28 @@ function createKitStore() {
         const slots = [...kit.slots];
         const existing = slots[index];
         if (existing) slots[index] = { ...existing, trimStart, trimEnd };
+        return { ...kit, slots };
+      });
+    },
+
+    setSlotPlayMode(index: number, mode: SlotPlayMode) {
+      applyUpdate(kit => {
+        const slots = [...kit.slots];
+        const existing = slots[index];
+        if (existing) slots[index] = { ...existing, playMode: mode };
+        return { ...kit, slots };
+      });
+    },
+
+    cyclePlayMode(index: number) {
+      applyUpdate(kit => {
+        const slots = [...kit.slots];
+        const existing = slots[index];
+        if (existing) {
+          const i = PLAY_MODE_CYCLE.indexOf(existing.playMode);
+          const next = PLAY_MODE_CYCLE[(i + 1) % PLAY_MODE_CYCLE.length];
+          slots[index] = { ...existing, playMode: next };
+        }
         return { ...kit, slots };
       });
     },

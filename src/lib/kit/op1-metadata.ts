@@ -1,7 +1,8 @@
-import { DEVICE_DRUM_VERSION, type DeviceMode } from './types';
+import { DEVICE_DRUM_VERSION, type DeviceMode, type SlotPlayMode } from './types';
 
 interface SlotTiming {
   trimDuration: number; // seconds
+  playMode?: SlotPlayMode; // defaults to 'oneshot' (current default in firmware)
 }
 
 interface MetadataOptions {
@@ -10,6 +11,23 @@ interface MetadataOptions {
   slots: (SlotTiming | null)[];  // 24 entries
   sampleRate: number;
 }
+
+// OP-1 APPL JSON encodes per-slot playback as two orthogonal integer arrays.
+// Codes confirmed via operator1/op1 wiki, schollz/teoperator, padenot/libop1,
+// and joseph-holland/op-patchstudio. The `12000` forward default is preserved
+// from this codebase's working baseline (matched against 808.aif).
+const PLAYMODE_CODES: Record<SlotPlayMode, number> = {
+  oneshot: 4096,
+  loop:    20480,
+  gate:    8192,
+  reverse: 4096,
+};
+const REVERSE_CODES: Record<SlotPlayMode, number> = {
+  oneshot: 12000,
+  loop:    12000,
+  gate:    12000,
+  reverse: 18432,
+};
 
 // OP-1 / OP-1 Field encodes sample positions as scaled fixed-point integers.
 // The entire max recording window maps to 0x7FFFFFFE (2,147,483,646).
@@ -42,6 +60,8 @@ export function buildOp1Metadata(opts: MetadataOptions): string {
 
   const start: number[] = [];
   const end:   number[] = [];
+  const playmode: number[] = [];
+  const reverse:  number[] = [];
   let fillCursor = 0;
   let emptyIdx   = 0;
 
@@ -51,10 +71,15 @@ export function buildOp1Metadata(opts: MetadataOptions): string {
       fillCursor += Math.round(slot.trimDuration * sampleRate);
       start.push(Math.floor(slotStart * scale));
       end.push(Math.floor(fillCursor * scale));
+      const mode = slot.playMode ?? 'oneshot';
+      playmode.push(PLAYMODE_CODES[mode]);
+      reverse.push(REVERSE_CODES[mode]);
     } else {
       const s = filledFrames + emptyIdx;
       start.push(Math.floor(s * scale));
       end.push(Math.floor((s + 1) * scale));
+      playmode.push(PLAYMODE_CODES.oneshot);
+      reverse.push(REVERSE_CODES.oneshot);
       emptyIdx++;
     }
   }
@@ -77,8 +102,8 @@ export function buildOp1Metadata(opts: MetadataOptions): string {
     pan:         Array(24).fill(16384),
     pan_ab:      Array(24).fill(false),
     pitch:       Array(24).fill(0),
-    playmode:    Array(24).fill(4096),
-    reverse:     Array(24).fill(12000),
+    playmode,
+    reverse,
     start,
     stereo:      deviceMode === 'op1field',
     type:        'drum',

@@ -164,6 +164,23 @@ Device modes:
 - `op1`: mono, 16-bit, 12s max
 - `op1field`: stereo, 24-bit, 20s max
 
+### Per-slot playback mode
+
+Each `SlotMeta` has a `playMode: 'oneshot' | 'loop' | 'gate' | 'reverse'` (default `'oneshot'`). The kit store exposes `setSlotPlayMode(i, mode)` and `cyclePlayMode(i)`; the latter advances through `PLAY_MODE_CYCLE` and is wired to a toggle button on `SlotRow` (next to the ✂ trim icon, dispatches the `cyclemode` event). Icons/labels are exported from `src/lib/kit/types.ts` as `PLAY_MODE_ICON` and `PLAY_MODE_LABEL`.
+
+At export time, `op1-metadata.ts` translates the string mode to two orthogonal OP-1 APPL integer arrays. Codes confirmed via the operator1/op1 wiki, schollz/teoperator, padenot/libop1, and joseph-holland/op-patchstudio:
+
+| Mode    | `playmode` | `reverse` |
+|---------|-----------:|----------:|
+| oneshot | 4096       | 12000     |
+| loop    | 20480      | 12000     |
+| gate    | 8192       | 12000     |
+| reverse | 4096       | 18432     |
+
+The `reverse=12000` "forward" value is preserved from the previous baseline (matched against the verified-working `808.aif` Field kit) rather than switching to the research-canonical `8192`, to avoid regressing already-working exports.
+
+In the kit editor, previewing a slot whose `playMode === 'reverse'` plays the trimmed region back-to-front. `audioPlayer.play()` takes an optional `reverse` flag; when true it builds a frame-reversed `AudioBuffer` (using `new AudioBuffer({...})` per the kit-store rule, never `ctx.createBuffer`) and plays the whole buffer from position 0. Loop and gate previews are intentionally not implemented in the kit editor — they are export-only behaviors on the OP-1 itself.
+
 ---
 
 ## Data Sources
@@ -211,6 +228,7 @@ All work is on `main`. Last commit: `957ded9`.
 
 ### What's been built
 
+- **Per-slot playback mode toggle**: Each `SlotMeta` carries a `playMode` (`oneshot` / `loop` / `gate` / `reverse`). `SlotRow` shows a cycle button next to ✂; icon and accent reflect the current mode. Stored in `kit.ts` and migrated for old patches. `audio-player.ts` accepts a `reverse` flag so the in-app preview plays back-to-front when reverse is selected. `op1-metadata.ts` translates to per-slot `playmode` (4096/20480/8192/4096) and `reverse` (12000/12000/12000/18432) integers. Codes from operator1/op1 wiki, schollz/teoperator, padenot/libop1.
 - **WaveformTrimA/B**: Two waveform trim editor variants. Variant A: imperative canvas (stable — Svelte reactivity must never touch canvas `width`/`height` after mount). Variant B: SVG with colored trim region. Both have zoom: Fit / + / − / Full.
 - **LFO source + engine**: Full LFO as a standalone channel source (`sourceId: 'lfo'`), driven by a per-channel `setInterval` in `channel-wiring.ts`. 5 shapes: sine, triangle, square, saw, rsaw. Depth blend wired into the engine pipeline. `🎛` icon used in channel strip and signal monitor.
   - **LFO pauses with transport**: `ChannelWiringManager.setPlaying(playing)` sets a `paused` flag; the interval callback skips phase advancement when paused. `lastTick` is always updated so there's no phase jump on resume.
@@ -264,7 +282,7 @@ pnpm test                              # All tests
 pnpm test src/lib/nodes/lfo.test.ts    # One file
 ```
 
-Test count as of last update: 131 tests, all passing (16 test files).
+Test count as of last update: 133 tests, all passing (16 test files).
 
 Key test files:
 - `src/lib/nodes/*.test.ts` — all signal nodes
