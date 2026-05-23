@@ -227,9 +227,7 @@
   .mode-btn.active { opacity: 1; color: var(--accent, #4a7c59); }
   .slot-row.active .mode-btn { color: #999; }
   .slot-row.active .mode-btn.active { color: #4a7c59; }
-  .mode-btn.mode-loop { font-size: 0.65rem; }
   .mode-btn.mode-reverse { color: var(--accent, #4a7c59); }
-  .mode-btn.mode-gate { font-size: 0.6rem; }
 
   .slot-dur {
     font-size: 0.68rem; color: var(--text-muted);
