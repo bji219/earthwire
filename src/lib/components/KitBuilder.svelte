@@ -142,6 +142,10 @@
         sampleRate,
       });
 
+      // Yield before the stitch+encode phase so the progress bar repaints
+      exportProgress = 0.85;
+      await new Promise(r => setTimeout(r, 0));
+
       // Stitch all trimmed buffers, then append 1 frame of silence per empty
       // slot so every slot in the APPL metadata can have a unique start<end.
       const stitched = appendSilence(

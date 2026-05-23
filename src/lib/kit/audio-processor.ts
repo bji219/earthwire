@@ -257,7 +257,7 @@ export function normalizeBuffer(buf: AudioBuffer, targetPeak = 0.9): void {
       if (abs > peak) peak = abs;
     }
   }
-  if (peak < 0.0001) return; // silence — don't amplify noise floor
+  if (peak < 0.0001 || peak > 0.5) return; // silence or already loud enough — don't boost
   const gain = targetPeak / peak;
   for (let ch = 0; ch < buf.numberOfChannels; ch++) {
     const data = buf.getChannelData(ch);
@@ -318,10 +318,16 @@ export function stitchBuffers(
 
   for (const buf of buffers) {
     if (!buf) continue;
+    // Cache channel data outside the frame loop — getChannelData() is a native
+    // call that allocates a Float32Array view each time; calling it per-frame
+    // causes ~1.76M native calls for a full 20s stereo kit and hangs the main thread.
+    const chData: Float32Array[] = [];
+    for (let ch = 0; ch < numChannels; ch++) {
+      chData.push(buf.getChannelData(ch < buf.numberOfChannels ? ch : 0));
+    }
     for (let frame = 0; frame < buf.length; frame++) {
       for (let ch = 0; ch < numChannels; ch++) {
-        const srcCh = ch < buf.numberOfChannels ? ch : 0; // downmix
-        out[cursor++] = buf.getChannelData(srcCh)[frame];
+        out[cursor++] = chData[ch][frame];
       }
     }
   }
