@@ -103,7 +103,8 @@ function createAudioPlayer() {
     key: string,
     getBuffer: (ctx: AudioContext) => Promise<AudioBuffer>,
     trimStart = 0,
-    trimEnd?: number
+    trimEnd?: number,
+    reverse = false,
   ) {
     stop();
     store.set({ playingKey: null, loadingKey: key });
@@ -115,9 +116,15 @@ function createAudioPlayer() {
       const buffer = await getBuffer(audioCtx);
       if (get(store).loadingKey !== key) return; // cancelled by stop() or new play()
       const src = audioCtx.createBufferSource();
-      src.buffer = buffer;
-      src.connect(audioCtx.destination);
-      src.start(0, trimStart, trimEnd !== undefined ? trimEnd - trimStart : undefined);
+      if (reverse) {
+        src.buffer = reverseTrimmedRegion(buffer, trimStart, trimEnd);
+        src.connect(audioCtx.destination);
+        src.start(0);
+      } else {
+        src.buffer = buffer;
+        src.connect(audioCtx.destination);
+        src.start(0, trimStart, trimEnd !== undefined ? trimEnd - trimStart : undefined);
+      }
       currentSrc = src;
       store.set({ playingKey: key, loadingKey: null });
       src.onended = () => {
@@ -130,6 +137,30 @@ function createAudioPlayer() {
       console.warn('[audio-player] play failed', err);
       store.set({ playingKey: null, loadingKey: null });
     }
+  }
+
+  // Per CLAUDE.md: use `new AudioBuffer({...})` (JS-heap) not ctx.createBuffer
+  // so the buffer survives the audio thread's recycling pool.
+  function reverseTrimmedRegion(buffer: AudioBuffer, trimStart: number, trimEnd?: number): AudioBuffer {
+    const sr = buffer.sampleRate;
+    const startFrame = Math.max(0, Math.floor(trimStart * sr));
+    const endFrame = trimEnd !== undefined
+      ? Math.min(buffer.length, Math.floor(trimEnd * sr))
+      : buffer.length;
+    const numFrames = Math.max(1, endFrame - startFrame);
+    const rev = new AudioBuffer({
+      length: numFrames,
+      numberOfChannels: buffer.numberOfChannels,
+      sampleRate: sr,
+    });
+    for (let c = 0; c < buffer.numberOfChannels; c++) {
+      const srcData = buffer.getChannelData(c);
+      const dstData = rev.getChannelData(c);
+      for (let i = 0; i < numFrames; i++) {
+        dstData[i] = srcData[startFrame + numFrames - 1 - i];
+      }
+    }
+    return rev;
   }
 
   return { subscribe: store.subscribe, play, stop, getCtx };

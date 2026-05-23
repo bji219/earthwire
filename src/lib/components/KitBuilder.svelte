@@ -5,7 +5,7 @@
   import SegmentBar from './SegmentBar.svelte';
   import SlotRow from './SlotRow.svelte';
   import {
-    DEVICE_LIMITS, DEVICE_CHANNELS, SLOT_COLORS,
+    DEVICE_LIMITS, DEVICE_CHANNELS, SLOT_COLORS, PLAY_MODE_DEFAULT,
     type DeviceMode, type SlotMeta,
   } from '$lib/kit/types';
   import { buildOp1Metadata } from '$lib/kit/op1-metadata';
@@ -71,6 +71,7 @@
       trimEnd: buffer.duration,
       fullDuration: buffer.duration,
       color: SLOT_COLORS[index],
+      playMode: PLAY_MODE_DEFAULT,
     }, buffer);
   }
 
@@ -82,7 +83,13 @@
     const buf = kit.getBuffer(index);
     const slot = $kit.slots[index];
     if (!buf || !slot) return;
-    audioPlayer.play(`slot-${index}`, async () => buf, slot.trimStart, slot.trimEnd);
+    audioPlayer.play(
+      `slot-${index}`,
+      async () => buf,
+      slot.trimStart,
+      slot.trimEnd,
+      slot.playMode === 'reverse',
+    );
   }
 
   async function doExport() {
@@ -133,7 +140,7 @@
       const slotTimings = $kit.slots.map((slot, i) => {
         if (!slot || !trimmedBuffers[i]) return null;
         const effectiveEnd = effectiveTrimEnds[i] ?? slot.trimEnd;
-        return { trimDuration: effectiveEnd - slot.trimStart };
+        return { trimDuration: effectiveEnd - slot.trimStart, playMode: slot.playMode };
       });
       const applJson = buildOp1Metadata({
         kitName: exportName,
@@ -262,6 +269,7 @@
         on:activate={() => { activeSlot = i; selectedSlots = new Set(); lastClickedSlot = i; previewSlot(i); }}
         on:clear={() => kit.clearSlot(i)}
         on:trim={e => kit.updateSlotTrim(i, e.detail.trimStart, e.detail.trimEnd)}
+        on:cyclemode={() => kit.cyclePlayMode(i)}
         on:preview={() => previewSlot(i)}
         on:fill={handleFill}
         on:reorder={handleReorder}
