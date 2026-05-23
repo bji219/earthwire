@@ -11,8 +11,8 @@ export const PLAY_MODE_CYCLE: SlotPlayMode[] = ['oneshot', 'loop', 'gate', 'reve
 
 export const PLAY_MODE_ICON: Record<SlotPlayMode, string> = {
   oneshot: '▶',
-  loop:    '🔁',
-  gate:    '⏺',
+  loop:    '∞',
+  gate:    '⇥',
   reverse: '◀',
 };
 
