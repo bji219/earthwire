@@ -4,6 +4,9 @@ import { browser } from '$app/environment';
 import type { KitMeta, SlotMeta, DeviceMode } from '$lib/kit/types';
 
 const STORAGE_KEY = 'earthwire-kit-v1';
+const PCM_DB_NAME = 'earthwire-kit-pcm';
+const PCM_STORE = 'slots';
+const PCM_DB_VER = 1;
 
 const DEFAULT_KIT: KitMeta = {
   deviceMode: 'op1field',
@@ -37,6 +40,7 @@ function saveMeta(meta: KitMeta) {
 }
 
 type PcmSnapshot = { sr: number; nch: number; ch: Float32Array[] };
+type PcmRecord = { index: number; sr: number; nch: number; ch: Float32Array[] };
 
 function snapshotBuffer(buffer: AudioBuffer): PcmSnapshot {
   return {
@@ -54,6 +58,65 @@ function buildBuffer(snap: PcmSnapshot): AudioBuffer {
   return buf;
 }
 
+function openPcmDb(): Promise<IDBDatabase> {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(PCM_DB_NAME, PCM_DB_VER);
+    req.onupgradeneeded = () =>
+      req.result.createObjectStore(PCM_STORE, { keyPath: 'index' });
+    req.onsuccess = () => resolve(req.result);
+    req.onerror   = () => reject(req.error);
+  });
+}
+
+async function savePcm(index: number, snap: PcmSnapshot): Promise<void> {
+  const db = await openPcmDb();
+  await new Promise<void>((resolve, reject) => {
+    const tx = db.transaction(PCM_STORE, 'readwrite');
+    const rec: PcmRecord = { index, sr: snap.sr, nch: snap.nch, ch: snap.ch };
+    tx.objectStore(PCM_STORE).put(rec);
+    tx.oncomplete = () => resolve();
+    tx.onerror    = () => reject(tx.error);
+  });
+}
+
+async function loadAllPcm(): Promise<Map<number, PcmSnapshot>> {
+  const db = await openPcmDb();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(PCM_STORE, 'readonly');
+    const req = tx.objectStore(PCM_STORE).getAll();
+    req.onsuccess = () => {
+      const out = new Map<number, PcmSnapshot>();
+      for (const rec of req.result as PcmRecord[]) {
+        out.set(rec.index, { sr: rec.sr, nch: rec.nch, ch: rec.ch });
+      }
+      resolve(out);
+    };
+    req.onerror = () => reject(req.error);
+  });
+}
+
+async function deletePcm(index: number): Promise<void> {
+  const db = await openPcmDb();
+  await new Promise<void>((resolve, reject) => {
+    const tx = db.transaction(PCM_STORE, 'readwrite');
+    tx.objectStore(PCM_STORE).delete(index);
+    tx.oncomplete = () => resolve();
+    tx.onerror    = () => reject(tx.error);
+  });
+}
+
+async function clearAllPcm(): Promise<void> {
+  const db = await openPcmDb();
+  await new Promise<void>((resolve, reject) => {
+    const tx = db.transaction(PCM_STORE, 'readwrite');
+    tx.objectStore(PCM_STORE).clear();
+    tx.oncomplete = () => resolve();
+    tx.onerror    = () => reject(tx.error);
+  });
+}
+
+const warnPersist = (err: unknown) => console.warn('kit pcm persist failed', err);
+
 function createKitStore() {
   const { subscribe, update, set } = writable<KitMeta>(loadMeta());
   // Store raw PCM snapshots — AudioBuffers handed to Web Audio get recycled after playback
@@ -67,11 +130,42 @@ function createKitStore() {
     });
   }
 
+  if (browser) {
+    loadAllPcm().then(loaded => {
+      for (const [i, snap] of loaded) {
+        if (!pcm.has(i)) pcm.set(i, snap);
+      }
+      // Trigger reactive refresh so kit.getBuffer(i) re-evaluates in consumers.
+      // Also clear ghost slots: metadata present but PCM missing means the
+      // user reloaded before persistence landed (or storage was wiped) —
+      // showing an unplayable row is worse than showing none.
+      update(kit => {
+        let changed = false;
+        const slots = kit.slots.map((s, i) => {
+          if (s && !pcm.has(i)) { changed = true; return null; }
+          return s;
+        });
+        const next = changed ? { ...kit, slots } : { ...kit };
+        if (changed) saveMeta(next);
+        return next;
+      });
+    }).catch(err => {
+      console.warn('kit pcm hydrate failed', err);
+      update(kit => {
+        const next = { ...kit, slots: Array(24).fill(null) };
+        saveMeta(next);
+        return next;
+      });
+    });
+  }
+
   return {
     subscribe,
 
     setSlot(index: number, meta: SlotMeta, buffer: AudioBuffer) {
-      pcm.set(index, snapshotBuffer(buffer));
+      const snap = snapshotBuffer(buffer);
+      pcm.set(index, snap);
+      if (browser) savePcm(index, snap).catch(warnPersist);
       applyUpdate(kit => {
         const slots = [...kit.slots];
         slots[index] = meta;
@@ -90,6 +184,7 @@ function createKitStore() {
 
     clearSlot(index: number) {
       pcm.delete(index);
+      if (browser) deletePcm(index).catch(warnPersist);
       applyUpdate(kit => {
         const slots = [...kit.slots];
         slots[index] = null;
@@ -102,6 +197,12 @@ function createKitStore() {
       const bufB = pcm.get(b);
       if (bufA !== undefined) pcm.set(b, bufA); else pcm.delete(b);
       if (bufB !== undefined) pcm.set(a, bufB); else pcm.delete(a);
+      if (browser) {
+        const writeA = pcm.get(a);
+        const writeB = pcm.get(b);
+        (writeA ? savePcm(a, writeA) : deletePcm(a)).catch(warnPersist);
+        (writeB ? savePcm(b, writeB) : deletePcm(b)).catch(warnPersist);
+      }
       applyUpdate(kit => {
         const slots = [...kit.slots] as KitMeta['slots'];
         [slots[a], slots[b]] = [slots[b], slots[a]];
@@ -115,7 +216,9 @@ function createKitStore() {
     },
 
     setBuffer(index: number, buffer: AudioBuffer) {
-      pcm.set(index, snapshotBuffer(buffer));
+      const snap = snapshotBuffer(buffer);
+      pcm.set(index, snap);
+      if (browser) savePcm(index, snap).catch(warnPersist);
     },
 
     setDeviceMode(mode: DeviceMode) {
@@ -128,6 +231,7 @@ function createKitStore() {
 
     reset() {
       pcm.clear();
+      if (browser) clearAllPcm().catch(warnPersist);
       const fresh = { ...DEFAULT_KIT, slots: Array(24).fill(null) };
       set(fresh);
       saveMeta(fresh);
