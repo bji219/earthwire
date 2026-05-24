@@ -58,6 +58,9 @@
     padding: 0.625rem 1.5rem;
     background: var(--bg-input);
     border-top: 1px solid var(--border-light);
+    position: sticky;
+    bottom: 0;
+    z-index: 10;
   }
   .title-label {
     font-family: var(--font-display);

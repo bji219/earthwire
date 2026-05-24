@@ -256,7 +256,7 @@
     flex-direction: column;
   }
   .channels {
-    flex: 1;
+    flex: 1 0 auto;
     padding: 0 1.5rem 1.5rem;
   }
   .section-heading {
