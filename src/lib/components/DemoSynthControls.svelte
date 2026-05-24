@@ -1,7 +1,11 @@
 <script lang="ts">
+  import { createEventDispatcher } from 'svelte';
   import type { DemoSynth } from '$lib/outputs/demo-synth.js';
 
+  const dispatch = createEventDispatcher<{ togglemute: void }>();
+
   export let synth: DemoSynth | null = null;
+  export let active = false;
 
   let waveform: OscillatorType = 'sawtooth';
   let filterValue = 0.5;
@@ -47,6 +51,9 @@
       <input type="range" min="0" max="1" step="0.01" value={reverbValue} on:input={handleReverb} />
     </label>
 
+    <button class="mute-btn" class:muted={!active} on:click={() => dispatch('togglemute')}>
+      {active ? '🔊 On' : '🔇 Muted'}
+    </button>
   </div>
 {/if}
 
@@ -97,6 +104,24 @@
   input[type='range'] {
     accent-color: var(--accent);
   }
+  .mute-btn {
+    margin-left: auto;
+    background: var(--bg-primary);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 0.3rem 0.75rem;
+    cursor: pointer;
+    font-family: var(--font-body);
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+    transition: all 150ms;
+  }
+  .mute-btn:hover { background: var(--bg-tertiary); }
+  .mute-btn.muted {
+    color: var(--text-muted);
+    background: var(--bg-secondary);
+  }
   @media (max-width: 768px) {
     .demo-synth-controls {
       flex-wrap: wrap;
@@ -124,6 +149,13 @@
     input[type='range'] {
       width: 100%;
       height: 32px;
+    }
+    .mute-btn {
+      flex-basis: 100%;
+      margin-left: 0;
+      padding: 0.55rem 1rem;
+      font-size: 0.9rem;
+      min-height: 40px;
     }
   }
 </style>

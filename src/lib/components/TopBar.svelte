@@ -5,9 +5,7 @@
   import type { BeatSubdivision } from '$lib/nodes/types.js';
   import { onMount, createEventDispatcher } from 'svelte';
 
-  const dispatch = createEventDispatcher<{ stop: void; togglesynth: void }>();
-
-  export let synthActive = false;
+  const dispatch = createEventDispatcher<{ stop: void }>();
 
   let midiAvailable = false;
 
@@ -75,14 +73,6 @@
     </button>
     <button class="transport-btn stop" on:click={handleStop}>
       <svg width="12" height="12" viewBox="0 0 12 12"><rect x="1" y="1" width="10" height="10" rx="1" fill="currentColor"/></svg>
-    </button>
-    <button
-      class="synth-toggle"
-      class:muted={!synthActive}
-      title={synthActive ? 'Mute demo synth' : 'Unmute demo synth'}
-      on:click={() => dispatch('togglesynth')}
-    >
-      {synthActive ? '🔊' : '🔇'}
     </button>
   </div>
 
@@ -183,24 +173,6 @@
     color: var(--danger);
     border-color: var(--danger);
   }
-  .synth-toggle {
-    width: 32px;
-    height: 32px;
-    background: var(--bg-primary);
-    color: var(--text-primary);
-    border: 1px solid var(--border);
-    border-radius: 50%;
-    cursor: pointer;
-    transition: all 150ms;
-    font-size: 0.85rem;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 0;
-    line-height: 1;
-  }
-  .synth-toggle:hover { background: var(--bg-tertiary); }
-  .synth-toggle.muted { color: var(--text-muted); opacity: 0.65; }
   .controls {
     display: flex;
     align-items: center;
