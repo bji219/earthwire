@@ -220,7 +220,14 @@
   />
 {:else}
   <div class="app">
-    <TopBar on:stop={handleStopButton} />
+    <TopBar
+      synthActive={synthPlaying}
+      on:stop={handleStopButton}
+      on:togglesynth={() => {
+        if (synthPlaying) { synth?.stop(); synthPlaying = false; }
+        else { synth?.start(); synthPlaying = true; }
+      }}
+    />
 
     <DataMonitor />
 
@@ -233,10 +240,7 @@
       <button class="add-channel" on:click={addChannel}>+ Add Channel</button>
     </main>
 
-    <DemoSynthControls {synth} active={synthPlaying} on:togglemute={() => {
-      if (synthPlaying) { synth?.stop(); synthPlaying = false; }
-      else { synth?.start(); synthPlaying = true; }
-    }} />
+    <DemoSynthControls {synth} />
 
     <div class="daw-banner">
       Connect to your DAW for the full experience &mdash;

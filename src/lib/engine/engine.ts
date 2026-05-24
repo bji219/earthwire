@@ -52,9 +52,34 @@ export class EarthwireEngine {
       if (i >= this.channels.length) {
         this.addChannel(configs[i]);
       } else {
-        this.updateChannel(i, configs[i]);
+        this.patchChannel(i, configs[i]);
       }
     }
+  }
+
+  // Preserves stateful node instances (e.g. auto-normalizer's observed
+  // min/max, smoother's last value) when only unrelated config fields change.
+  // Without this, every syncChannels call — including adding/removing other
+  // channels — would wipe each channel's learned state and flatline its
+  // output until enough new samples arrived to re-learn the range.
+  private patchChannel(index: number, next: ChannelConfig): void {
+    const existing = this.channels[index];
+    const prev = existing.config;
+    this.channels[index] = {
+      config: next,
+      normalizer: sameJson(prev.normalizer, next.normalizer)
+        ? existing.normalizer
+        : createNormalizer(next.normalizer),
+      smoother: sameJson(prev.smoother, next.smoother)
+        ? existing.smoother
+        : next.smoother ? createSmoother(next.smoother) : null,
+      quantizer: sameJson(prev.quantizer, next.quantizer)
+        ? existing.quantizer
+        : next.quantizer ? createQuantizer(next.quantizer) : null,
+      threshold: sameJson(prev.threshold, next.threshold)
+        ? existing.threshold
+        : next.threshold ? createThreshold(next.threshold) : null,
+    };
   }
 
   processValue(channelIndex: number, rawValue: number): ChannelOutput {
@@ -81,4 +106,8 @@ export class EarthwireEngine {
   getChannelConfig(index: number): ChannelConfig | undefined {
     return this.channels[index]?.config;
   }
+}
+
+function sameJson(a: unknown, b: unknown): boolean {
+  return JSON.stringify(a) === JSON.stringify(b);
 }
