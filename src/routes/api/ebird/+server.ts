@@ -11,7 +11,11 @@ const HEADERS = {
 };
 
 export const GET: RequestHandler = async ({ url }) => {
-	const regionCode = url.searchParams.get('region') || 'US';
+	const rawRegion = url.searchParams.get('region') || 'US';
+	if (!/^[A-Z]{2}(-[A-Z0-9]{1,6})*$/.test(rawRegion)) {
+		return json({ error: 'Invalid region code' }, { status: 400 });
+	}
+	const regionCode = rawRegion;
 	const back = Math.min(30, Math.max(1, parseInt(url.searchParams.get('back') || '1', 10)));
 	const maxResults = back > 1 ? 200 : 50;
 

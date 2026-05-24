@@ -3,7 +3,7 @@ import type { RequestHandler } from './$types';
 
 export const GET: RequestHandler = async ({ url, fetch }) => {
   const id = url.searchParams.get('id');
-  if (!id) throw error(400, 'Missing id parameter');
+  if (!id || !/^\d+$/.test(id)) throw error(400, 'Invalid id parameter');
 
   const audioUrl = `https://xeno-canto.org/${id}/download`;
 
