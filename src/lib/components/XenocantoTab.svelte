@@ -103,6 +103,15 @@
     return `/api/xeno-canto/audio?id=${rec.id}`;
   }
 
+  // Xeno-canto v3 returns `length` as "M:SS" or "H:MM:SS" strings, not seconds
+  function parseXcLength(len: string | number | undefined): number {
+    if (len == null) return 0;
+    if (typeof len === 'number') return len;
+    const parts = len.split(':').map(Number);
+    if (parts.some(isNaN)) return 0;
+    return parts.reduce((acc, n) => acc * 60 + n, 0);
+  }
+
   async function fetchAndDecode(rec: any, ctx: AudioContext): Promise<AudioBuffer> {
     if (cache.has(rec.id)) return cache.get(rec.id)!;
     const res = await fetch(getAudioUrl(rec));
@@ -228,7 +237,7 @@
 
   <div class="results-list" bind:this={resultsList}>
     {#each recordings as rec}
-      {@const dur = parseFloat(rec.length ?? '0')}
+      {@const dur = parseXcLength(rec.length)}
       <div
         class="result-item"
         draggable="true"
