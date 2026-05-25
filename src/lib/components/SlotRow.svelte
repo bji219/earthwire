@@ -4,7 +4,7 @@
   import { get } from 'svelte/store';
   import WaveformTrimA from './WaveformTrimA.svelte';
   import WaveformTrimB from './WaveformTrimB.svelte';
-  import { extractPeaks, peaksToSvgPath } from '$lib/kit/audio-processor';
+  import { extractPeaksRange, peaksToSvgPath } from '$lib/kit/audio-processor';
   import {
     SLOT_COLORS, SLOT_NOTES, formatDuration,
     PLAY_MODE_ICON, PLAY_MODE_LABEL,
@@ -33,7 +33,9 @@
   const MINI_W = 70;
   const MINI_H = 22;
 
-  $: peaks = buffer ? extractPeaks(buffer, MINI_BARS) : [];
+  $: peaks = (buffer && slot)
+    ? extractPeaksRange(buffer, MINI_BARS, slot.trimStart, slot.trimEnd)
+    : [];
   $: svgPath = peaksToSvgPath(peaks, MINI_W, MINI_H);
   $: color = SLOT_COLORS[index];
   $: note  = SLOT_NOTES[index];

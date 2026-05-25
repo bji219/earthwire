@@ -10,18 +10,18 @@
   <h1>Getting Started with Earthwire</h1>
 
   <p class="intro">
-    Earthwire builds OP-1 and OP-1 Field drum kits from Freesound, Xeno-canto bird recordings, and your own audio —
-    and also streams live scientific data (earthquakes, ISS, ocean sensors, solar wind, bird activity) into MIDI signals for your DAW.
+    Earthwire builds OP-1 and OP-1 Field drum kits from Freesound, Xeno-canto bird recordings, and your own audio.
+    It also streams live scientific data (earthquakes, ISS, ocean sensors, solar wind, bird activity) into MIDI signals for your DAW.
   </p>
 
   <section>
     <h2>Build a Kit (OP-1 / OP-1 Field)</h2>
     <ol>
-      <li>Open the <strong>Kit Designer</strong> (the home page). On your first visit you'll see a landing screen — click <strong>Build a Kit</strong> to enter.</li>
+      <li>Open the <strong>Kit Designer</strong> (the home page). On your first visit you'll see a landing screen. Click <strong>Build a Kit</strong> to enter.</li>
       <li>In the <strong>Sample Browser</strong> on the left, search <strong>Freesound</strong> for drum and instrument samples, or <strong>Bird Sounds</strong> (Xeno-canto) for field recordings. You can also upload your own files under <strong>My Sounds</strong>.</li>
       <li>Drag a sample onto one of the 24 slots in the <strong>Kit Builder</strong> on the right, or click a sample to preview and then drop it into the next empty slot.</li>
       <li>Click the <strong>✂ trim</strong> icon on a slot to open the waveform editor and set <strong>trimStart</strong>/<strong>trimEnd</strong> for that slot.</li>
-      <li>Pick a <strong>device mode</strong> — OP-1 (mono, 12s max) or OP-1 Field (stereo, 20s max).</li>
+      <li>Pick a <strong>device mode</strong>: OP-1 (mono, 12s max) or OP-1 Field (stereo, 20s max).</li>
       <li>Click <strong>Export</strong> to download a ready-to-load <code>.aif</code> drum kit. If any slots come from Freesound, a <code>-credits.txt</code> sidecar is downloaded too.</li>
       <li>Copy the <code>.aif</code> into your OP-1 / OP-1 Field's drum folder and load it like any other kit.</li>
     </ol>
@@ -33,11 +33,11 @@
       <li>Open the <strong>Sequencer</strong> from the top nav (or go to <code>/sequencer</code>). On your first visit, click <strong>Start Listening</strong> to initialize the audio engine.</li>
       <li>Press <strong>Play</strong> in the transport bar to start the sequencer. The demo synth will activate if any channel is routed to it.</li>
       <li>Use the <strong>source dropdown</strong> on a channel strip to switch between data sources (Earthquakes, ISS Position, Bird Activity, MBARI Ocean, Solar Wind). Click the <strong>info icon</strong> next to the source to visit the data provider's website.</li>
-      <li>Choose a <strong>field</strong> — each source exposes different data dimensions (magnitude, depth, temperature, etc.).</li>
+      <li>Choose a <strong>field</strong>: each source exposes different data dimensions (magnitude, depth, temperature, etc.).</li>
       <li>Select a <strong>time range</strong> (1 Hour, 1 Day, 1 Week, 1 Month) to control how much historical data the sequencer steps through.</li>
       <li>Adjust <strong>BPM</strong>, <strong>subdivision</strong> (1/4 through 1/32, including triplets), and <strong>swing %</strong> to control playback timing.</li>
       <li>Tune <strong>Norm</strong> (auto/manual) and <strong>Smooth</strong> to shape how raw data maps to the 0–1 output range.</li>
-      <li>Set the <strong>output target</strong> — Demo Synth to hear it immediately, or MIDI CC/Note/Trigger to send to your DAW.</li>
+      <li>Set the <strong>output target</strong>: Demo Synth to hear it immediately, or MIDI CC/Note/Trigger to send to your DAW.</li>
       <li>Click <strong>+ Add Channel</strong> to map multiple data streams simultaneously.</li>
     </ol>
   </section>
@@ -45,7 +45,7 @@
   <section>
     <h2>MIDI Setup</h2>
     <ol>
-      <li>Use <strong>Chrome</strong>, <strong>Arc</strong>, <strong>Edge</strong>, or <strong>Brave</strong> — browsers that support the Web MIDI API.</li>
+      <li>Use <strong>Chrome</strong>, <strong>Arc</strong>, <strong>Edge</strong>, or <strong>Brave</strong>: browsers that support the Web MIDI API.</li>
       <li>Connect a virtual MIDI port (see IAC Driver setup below) or a hardware MIDI interface.</li>
       <li>Select your MIDI output port in the <strong>MIDI Out</strong> dropdown in the top bar.</li>
       <li>Set a channel's output to <strong>MIDI CC</strong>, <strong>MIDI Note</strong>, or <strong>MIDI Trigger</strong>.</li>
@@ -76,7 +76,7 @@
     </p>
     <p class="note">
       <strong>Windows:</strong> Use <a href="https://www.tobias-erichsen.de/software/loopmidi.html" target="_blank" rel="noopener">loopMIDI</a>
-      to create virtual MIDI ports. The setup is similar — create a named port, select it in Earthwire, and set it as the input in your DAW.
+      to create virtual MIDI ports. The setup is similar. Create a named port, select it in Earthwire, and set it as the input in your DAW.
     </p>
   </section>
 
@@ -84,19 +84,19 @@
     <h2>Data Sources</h2>
     <dl>
       <dt>Earthquakes (USGS)</dt>
-      <dd>Historical earthquake data — magnitude, depth, latitude, longitude. Fetched from the USGS GeoJSON feed.</dd>
+      <dd>Historical earthquake data: magnitude, depth, latitude, longitude. Fetched from the USGS GeoJSON feed.</dd>
 
       <dt>ISS Position</dt>
-      <dd>International Space Station orbital data — latitude, longitude, altitude, velocity. Computed from TLE orbital elements.</dd>
+      <dd>International Space Station orbital data: latitude, longitude, altitude, velocity. Computed from TLE orbital elements.</dd>
 
       <dt>Bird Activity (eBird)</dt>
-      <dd>Individual bird observations from the Cornell Lab eBird API — individual counts, cumulative species diversity, and latitude per observation.</dd>
+      <dd>Individual bird observations from the Cornell Lab eBird API: individual counts, cumulative species diversity, and latitude per observation.</dd>
 
       <dt>MBARI Ocean</dt>
-      <dd>Oceanographic data from Monterey Bay sensors — depth profiles for temperature, salinity, and oxygen, plus chlorophyll, fluorescence, and nitrate measurements. Data from the MBARI STOQS database.</dd>
+      <dd>Oceanographic data from Monterey Bay sensors: depth profiles for temperature, salinity, and oxygen, plus chlorophyll, fluorescence, and nitrate measurements. Data from the MBARI STOQS database.</dd>
 
       <dt>Solar Wind (NOAA/NASA)</dt>
-      <dd>Real-time solar wind plasma data — wind speed, plasma density, plasma temperature from NOAA SWPC, plus solar flare intensity from NASA DONKI. Data updates every few minutes with 7-day history.</dd>
+      <dd>Real-time solar wind plasma data: wind speed, plasma density, plasma temperature from NOAA SWPC, plus solar flare intensity from NASA DONKI. Data updates every few minutes with 7-day history.</dd>
     </dl>
   </section>
 
