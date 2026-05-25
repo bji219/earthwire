@@ -24,6 +24,7 @@
   },
   "type": "module",
   "dependencies": {
+    "@vercel/analytics": "^2.0.1",
     "satellite.js": "^6.0.2"
   }
 }
