@@ -11,6 +11,7 @@
   import { buildOp1Metadata } from '$lib/kit/op1-metadata';
   import { trimBuffer, stitchBuffers, normalizeBuffer, appendSilence } from '$lib/kit/audio-processor';
   import { encodeAiff } from '$lib/kit/aiff-encoder';
+  import { importOp1Kit } from '$lib/kit/op1-import';
 
   const deviceModes: [DeviceMode, string, string][] = [
     ['op1', 'OP–1 / OP–Z', 'mono · 12s'],
@@ -23,6 +24,39 @@
   let exporting = false;
   let exportError = '';
   let exportProgress = 0; // 0–1
+  let importing = false;
+  let importError = '';
+  let importNotice = '';
+  let importInput: HTMLInputElement;
+
+  function openImport() {
+    importError = '';
+    importNotice = '';
+    importInput?.click();
+  }
+
+  async function handleImportFile(e: Event) {
+    const input = e.target as HTMLInputElement;
+    const file = input.files?.[0];
+    input.value = ''; // allow re-selecting the same file later
+    if (!file) return;
+
+    const anyFilled = $kit.slots.some(Boolean);
+    if (anyFilled && !confirm('Replace current kit with the imported one?')) return;
+
+    importing = true;
+    importError = '';
+    importNotice = '';
+    try {
+      const summary = await importOp1Kit(file);
+      importNotice = `imported ${summary.kitName || 'kit'}: ${summary.filledCount}/24 slots`;
+      setTimeout(() => { importNotice = ''; }, 4000);
+    } catch (err: any) {
+      importError = err?.message ?? 'Import failed';
+    } finally {
+      importing = false;
+    }
+  }
 
   $: maxSeconds = DEVICE_LIMITS[$kit.deviceMode];
   $: usedSeconds = $kit.slots.reduce(
@@ -309,6 +343,14 @@
       {$kit.slots.filter(Boolean).length} / 24 slots
     </span>
     <button
+      class="import-btn"
+      disabled={importing || exporting}
+      on:click={openImport}
+      title="Import an existing OP-1 / OP-1 Field .aif drum kit"
+    >
+      {importing ? 'importing…' : '← import .aif'}
+    </button>
+    <button
       class="export-btn"
       disabled={exporting}
       title={overBudget ? `Over ${maxSeconds}s — last sample(s) will be clipped to fit` : ''}
@@ -317,6 +359,13 @@
       {exporting ? 'exporting…' : 'export kit →'}
     </button>
   </div>
+  <input
+    type="file"
+    accept=".aif,.aiff"
+    bind:this={importInput}
+    on:change={handleImportFile}
+    style="display:none"
+  />
 
   {#if exporting}
     <div class="export-progress">
@@ -326,6 +375,14 @@
 
   {#if exportError}
     <p class="export-error">{exportError}</p>
+  {/if}
+
+  {#if importError}
+    <p class="export-error">{importError}</p>
+  {/if}
+
+  {#if importNotice}
+    <p class="import-notice">{importNotice}</p>
   {/if}
 
   <p class="hint">arrow keys navigate · click plays · shift-click range-selects · backspace/delete clears · drag to reorder</p>
@@ -365,15 +422,21 @@
 
   .kit-footer {
     display: flex; justify-content: space-between; align-items: center;
+    gap: 0.75rem;
     padding: 0.65rem 1rem; border-top: 1px solid var(--border); flex-shrink: 0;
   }
-  .slot-count { font-size: 0.68rem; color: var(--text-muted); }
-  .export-btn {
+  .slot-count { font-size: 0.68rem; color: var(--text-muted); margin-right: auto; }
+  .import-btn, .export-btn {
     font-size: 0.75rem; font-weight: 500; background: none; border: none;
     cursor: pointer; font-family: var(--font-body); color: var(--text-primary);
   }
-  .export-btn:disabled { color: var(--text-muted); cursor: not-allowed; }
-  .export-btn:hover:not(:disabled) { opacity: 0.6; }
+  .import-btn { color: var(--text-secondary, var(--text-muted)); }
+  .import-btn:disabled, .export-btn:disabled { color: var(--text-muted); cursor: not-allowed; }
+  .import-btn:hover:not(:disabled), .export-btn:hover:not(:disabled) { opacity: 0.6; }
+
+  .import-notice {
+    font-size: 0.7rem; color: var(--accent, #4a7c59); padding: 0.3rem 1rem;
+  }
 
   .export-progress {
     height: 2px; background: var(--border); flex-shrink: 0;
@@ -425,7 +488,7 @@
       padding: 0.75rem 0.85rem;
     }
     .slot-count { font-size: 0.78rem; }
-    .export-btn {
+    .import-btn, .export-btn {
       font-size: 0.9rem;
       padding: 0.5rem 0.85rem;
       min-height: 40px;

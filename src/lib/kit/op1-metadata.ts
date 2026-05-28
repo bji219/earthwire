@@ -16,7 +16,7 @@ interface MetadataOptions {
 // Codes confirmed via operator1/op1 wiki, schollz/teoperator, padenot/libop1,
 // and joseph-holland/op-patchstudio. The `12000` forward default is preserved
 // from this codebase's working baseline (matched against 808.aif).
-const PLAYMODE_CODES: Record<SlotPlayMode, number> = {
+export const PLAYMODE_CODES: Record<SlotPlayMode, number> = {
   oneshot:    8192,   // confirmed
   gate:       4096,   // confirmed
   loop:       28672,  // confirmed: 0x7000, extracted from OP-1 Field kit binary
@@ -24,7 +24,7 @@ const PLAYMODE_CODES: Record<SlotPlayMode, number> = {
   revoneshot: 12288,  // confirmed
   revgate:    4096,   // confirmed
 };
-const REVERSE_CODES: Record<SlotPlayMode, number> = {
+export const REVERSE_CODES: Record<SlotPlayMode, number> = {
   oneshot:    12000,
   gate:       12000,
   loop:       12000,
@@ -37,8 +37,8 @@ const REVERSE_CODES: Record<SlotPlayMode, number> = {
 // The entire max recording window maps to 0x7FFFFFFE (2,147,483,646).
 // scale = 0x7FFFFFFE / (sampleRate × maxSeconds)
 // Confirmed by DigiChain source (resources.js) and op-forums reverse-engineering.
-const DEVICE_MAX_SECONDS: Record<DeviceMode, number> = { op1: 12, op1field: 20 };
-const OP1_MAX = 0x7ffffffe; // 2,147,483,646
+export const DEVICE_MAX_SECONDS: Record<DeviceMode, number> = { op1: 12, op1field: 20 };
+export const OP1_MAX = 0x7ffffffe; // 2,147,483,646
 
 // The OP-1 Field firmware reads a fixed 4096-byte block from the APPL chunk
 // starting after the 4-byte 'op-1' signature. If the block is shorter the
