@@ -128,7 +128,7 @@ describe('parseAiff', () => {
     const aifc = encodeMinimalAifc(applJson);
 
     // Buffer the typed array into a clean ArrayBuffer
-    const buf = aifc.buffer.slice(aifc.byteOffset, aifc.byteOffset + aifc.byteLength);
+    const buf = aifc.buffer.slice(aifc.byteOffset, aifc.byteOffset + aifc.byteLength) as ArrayBuffer;
     const parsed = parseAiff(buf);
 
     expect(parsed.compressionType).toBe('sowt');
