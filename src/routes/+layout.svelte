@@ -2,6 +2,8 @@
   import { page } from '$app/stores';
   import { onMount } from 'svelte';
   import { browser } from '$app/environment';
+  import UnlockDialog from '$lib/components/UnlockDialog.svelte';
+  import { isUnlocked, openUnlock } from '$lib/stores/license';
 
   onMount(async () => {
     if (!browser) return;
@@ -21,11 +23,19 @@
   <a href="/" class="wordmark">Earthwire</a>
   <nav class="site-nav">
     <a href="/" class="nav-link" class:active={$page.url.pathname === '/'}>Kit Designer</a>
-    <a href="/sequencer" class="nav-link" class:active={$page.url.pathname === '/sequencer'}>Sequencer</a>
+    <a href="/docs/getting-started" class="nav-link" class:active={$page.url.pathname.startsWith('/docs')}>Docs</a>
   </nav>
+
+  {#if $isUnlocked}
+    <span class="pro-chip unlocked" title="Earthwire Pro is active in this browser">Pro ✓</span>
+  {:else}
+    <button class="pro-chip" on:click={() => openUnlock('manual')}>Unlock Pro</button>
+  {/if}
 </div>
 
 <div class="layout-content"><slot /></div>
+
+<UnlockDialog />
 
 <footer class="site-footer">
   <a href="https://github.com/bji219" target="_blank" rel="noopener noreferrer" aria-label="GitHub">
@@ -79,6 +89,27 @@
   .nav-link:hover { color: var(--text-primary); }
   .nav-link.active { color: var(--text-primary); border-bottom-color: var(--text-primary); }
 
+  .pro-chip {
+    margin-left: auto;
+    font-family: var(--font-body, sans-serif);
+    font-size: 0.66rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    padding: 0.25rem 0.6rem;
+    border-radius: 999px;
+    border: 1px solid var(--accent);
+    color: var(--accent);
+    background: none;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .pro-chip:hover { background: var(--accent); color: #fff; }
+  .pro-chip.unlocked {
+    background: var(--accent-bg);
+    cursor: default;
+  }
+  .pro-chip.unlocked:hover { background: var(--accent-bg); color: var(--accent); }
+
   .site-footer {
     display: flex;
     gap: 0.75rem;
@@ -127,6 +158,11 @@
     .nav-link {
       padding: 0.5rem 0.7rem;
       font-size: 0.8rem;
+    }
+    .pro-chip {
+      font-size: 0.72rem;
+      padding: 0.35rem 0.7rem;
+      min-height: 32px;
     }
   }
 </style>

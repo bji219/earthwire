@@ -12,6 +12,7 @@
   import { trimBuffer, stitchBuffers, normalizeBuffer, appendSilence } from '$lib/kit/audio-processor';
   import { encodeAiff } from '$lib/kit/aiff-encoder';
   import { importOp1Kit } from '$lib/kit/op1-import';
+  import { canExport, exportsRemaining, isUnlocked, openUnlock, recordExport } from '$lib/stores/license';
 
   const deviceModes: [DeviceMode, string, string][] = [
     ['op1', 'OP–1 / OP–Z', 'mono · 12s'],
@@ -63,6 +64,13 @@
     (s, sl) => s + (sl ? sl.trimEnd - sl.trimStart : 0), 0
   );
   $: overBudget = usedSeconds > maxSeconds;
+
+  $: exportsLeft = $exportsRemaining > 0;
+  $: exportTitle = !exportsLeft
+    ? 'Free exports used — unlock Pro for unlimited exports'
+    : overBudget
+      ? `Over ${maxSeconds}s — last sample(s) will be clipped to fit`
+      : '';
 
   function handleKitNameChange(e: Event) {
     kit.setName((e.target as HTMLInputElement).value);
@@ -127,6 +135,10 @@
   }
 
   async function doExport() {
+    if (!canExport()) {
+      openUnlock('export');
+      return;
+    }
     exporting = true;
     exportError = '';
     exportProgress = 0;
@@ -241,6 +253,9 @@
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
+      // Counted here rather than at the end: the kit has left the building, so a
+      // later failure in the credits sidecar must not hand back a free export.
+      recordExport();
       // Revoke after a delay — Safari downloads blobs asynchronously and gets a 404
       // if the object URL is revoked before the download manager has read all the bytes.
       setTimeout(() => URL.revokeObjectURL(url), 60_000);
@@ -352,13 +367,26 @@
     </button>
     <button
       class="export-btn"
+      class:locked={!exportsLeft}
       disabled={exporting}
-      title={overBudget ? `Over ${maxSeconds}s — last sample(s) will be clipped to fit` : ''}
+      title={exportTitle}
       on:click={doExport}
     >
-      {exporting ? 'exporting…' : 'export kit →'}
+      {#if exporting}
+        exporting…
+      {:else if !exportsLeft}
+        🔒 export kit →
+      {:else}
+        export kit →
+      {/if}
     </button>
   </div>
+
+  {#if !$isUnlocked && exportsLeft}
+    <p class="free-note">
+      {$exportsRemaining} free {$exportsRemaining === 1 ? 'export' : 'exports'} left
+    </p>
+  {/if}
   <input
     type="file"
     accept=".aif,.aiff"
@@ -448,6 +476,12 @@
 
   .export-error {
     font-size: 0.7rem; color: #c0392b; padding: 0.3rem 1rem;
+  }
+
+  .export-btn.locked { color: var(--text-muted); }
+  .free-note {
+    font-size: 0.62rem; color: var(--text-muted); text-align: right;
+    padding: 0 1rem 0.35rem; margin: 0; flex-shrink: 0;
   }
 
   .bulk-bar {

@@ -10,6 +10,7 @@
     PLAY_MODE_ICON, PLAY_MODE_LABEL,
   } from '$lib/kit/types';
   import { dragPayload } from '$lib/stores/drag';
+  import { isUnlocked, openUnlock } from '$lib/stores/license';
   import type { SlotMeta } from '$lib/kit/types';
 
   export let index: number;
@@ -44,6 +45,17 @@
   let isDragOver = false;
   let editing = false;
   let trimVariant: 'A' | 'B' = 'A';
+
+  function toggleTrim() {
+    if (!get(isUnlocked)) {
+      openUnlock('trim');
+      return;
+    }
+    editing = !editing;
+  }
+
+  // Close any open editor if Pro is deactivated mid-session.
+  $: if (!$isUnlocked && editing) editing = false;
 
   function handleDragOver(e: DragEvent) {
     e.preventDefault();
@@ -113,9 +125,10 @@
       <button
         class="trim-btn"
         class:open={editing}
-        on:click|stopPropagation={() => (editing = !editing)}
-        title="Open trim editor"
-      >✂</button>
+        class:locked={!$isUnlocked}
+        on:click|stopPropagation={toggleTrim}
+        title={$isUnlocked ? 'Open trim editor' : 'Trimming is a Pro feature'}
+      >{$isUnlocked ? '✂' : '🔒'}</button>
       <button
         class="mode-btn mode-{slot.playMode}"
         class:active={slot.playMode !== 'oneshot'}
@@ -253,6 +266,9 @@
   }
   .slot-row:hover .trim-btn { opacity: 1; }
   .trim-btn.open { opacity: 1; color: var(--accent, #4a7c59); }
+  /* Faintly visible at rest — a lock nobody notices never sells anything. */
+  .trim-btn.locked { opacity: 0.4; }
+  .slot-row:hover .trim-btn.locked { opacity: 1; }
   .slot-row.active .trim-btn { color: #999; }
   .slot-row.active .trim-btn.open { color: #4a7c59; }
 
