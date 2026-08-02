@@ -21,7 +21,7 @@ const KEYS_DIR = process.env.EARTHWIRE_KEYS_DIR
   : resolve(ROOT, '.keys');
 const LEDGER = resolve(KEYS_DIR, 'ledger.json');
 
-const SITE_URL = (process.env.SITE_URL ?? readEnv('SITE_URL') ?? 'https://earthwire.app').replace(/\/$/, '');
+const SITE_URL = (process.env.SITE_URL ?? readEnv('SITE_URL') ?? 'https://earthwire.space').replace(/\/$/, '');
 const SHOP_URL = process.env.ETSY_SHOP_URL ?? readEnv('ETSY_SHOP_URL') ?? 'idw3d.etsy.com';
 const BATCH_SIZE = 5;
 
@@ -62,7 +62,7 @@ function pickBatch(ledger) {
   if (explicit) {
     if (!BATCH_RE.test(explicit)) die("batch must be 'B' followed by two characters, e.g. B02");
     if (ledger.some(e => e.batch === explicit)) {
-      die(`batch ${explicit} is already in the ledger — reusing it would put two keys under one revocation unit`);
+      die(`batch ${explicit} is already in the ledger. Reusing it would put two keys under one revocation unit`);
     }
     return explicit;
   }
@@ -73,7 +73,7 @@ function pickBatch(ledger) {
 
 function buildPdf(path, { batch, key, issued }) {
   const doc = new PDFDocument({ size: 'LETTER', margin: 0, info: {
-    Title: 'Earthwire Pro — Unlock Key',
+    Title: 'Earthwire Pro Unlock Key',
     Author: 'Earthwire',
     Subject: `Batch ${batch}`,
   } });
@@ -115,26 +115,34 @@ function buildPdf(path, { batch, key, issued }) {
     y += 20;
   }
 
-  y += 14;
-  doc.font('Helvetica-Bold').fontSize(12).fillColor(INK).text('Good to know', M, y);
-  y += 20;
+  y += 16;
+  doc.font('Helvetica-Bold').fontSize(12).fillColor(INK).text('FAQ', M, y);
+  y += 22;
 
-  const notes = [
-    'The key never expires.',
-    'It is stored in the browser you unlock, so unlocking on a second computer, a phone, or after clearing site data just means entering it again. Keep this file.',
-    'Capital letters and dashes do not matter — type it however you like.',
-    `Trouble with your key? Message me through ${SHOP_URL} with your order number.`,
+  const faq = [
+    ['Does the key expire?', 'No. It works forever.'],
+    [
+      'Do I have to type it exactly?',
+      'No. Capital letters and dashes are ignored, so type it however you like.',
+    ],
+    [
+      'Can I use it on more than one computer?',
+      'Yes. The key is saved in the browser you unlock, so enter it again on any other machine or browser. Keep this file so you always have it.',
+    ],
+    [
+      'Something went wrong. Can you help?',
+      `Message me through ${SHOP_URL} with your order number and I will sort it out.`,
+    ],
   ];
-  for (const note of notes) {
-    doc.font('Helvetica').fontSize(10).fillColor(ACCENT).text('•', M, y, { width: 12 });
-    const h = doc.font('Helvetica').fontSize(10).fillColor(INK)
-      .text(note, M + 14, y, { width: W - 14, lineGap: 2 }).y - y;
-    y += h + 8;
+  for (const [q, a] of faq) {
+    doc.font('Helvetica-Bold').fontSize(10).fillColor(INK).text(q, M, y, { width: W });
+    y = doc.font('Helvetica').fontSize(10).fillColor(INK)
+      .text(a, M, y + 14, { width: W, lineGap: 2 }).y + 12;
   }
 
   doc.moveTo(M, doc.page.height - M - 26).lineTo(M + W, doc.page.height - M - 26).strokeColor(BORDER).stroke();
   doc.font('Helvetica').fontSize(8).fillColor(MUTED)
-    .text(`Batch ${batch} · issued ${issued.slice(0, 10)} · Earthwire — OP-1 and OP-1 Field drum kit designer`,
+    .text(`Batch ${batch} · issued ${issued.slice(0, 10)} · Earthwire · OP-1 and OP-1 Field drum kit designer`,
       M, doc.page.height - M - 16, { width: W });
 
   doc.end();
@@ -168,5 +176,5 @@ console.log(`
     1. Upload that PDF to the Etsy listing, replacing the old file.
     2. Set the listing quantity back to ${BATCH_SIZE}.
 
-  No deploy needed — the key works as soon as it is minted.
+  No deploy needed. The key works as soon as it is minted.
 `);
