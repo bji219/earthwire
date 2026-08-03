@@ -1,16 +1,19 @@
 <script lang="ts">
   import { createEventDispatcher, onMount } from 'svelte';
+  import { ETSY_LISTING_URL } from '$lib/license/limits';
 
   export let overline: string = 'OP-1 Drum Kit Designer';
   export let tagline: string = 'Build OP-1 / OP-1 Field drum kits from sounds across the planet.';
-  export let description: string = 'Search Freesound and Xeno-canto, trim and arrange 24 slots, then export a ready-to-load .aif for your OP-1. Or stream live scientific data into MIDI signals for your DAW.';
+  export let description: string = 'Search Freesound and Xeno-canto, arrange 24 slots, trim each one, then export a ready-to-load .aif for your OP-1. Free to try, no account needed.';
   export let primaryLabel: string = 'Build a Kit';
-  export let secondaryLabel: string = 'Open Sequencer →';
-  export let secondaryHref: string = '/sequencer';
+  export let secondaryLabel: string = 'Get a Pro key →';
+  export let secondaryHref: string = ETSY_LISTING_URL;
   export let docsHref: string = '/docs/getting-started';
   export let showMidiNote: boolean = false;
 
   const dispatch = createEventDispatcher();
+
+  $: secondaryExternal = /^https?:/i.test(secondaryHref);
 
   let isChromium = false;
   let visible = false;
@@ -35,7 +38,12 @@
       <button class="cta-primary" on:click={() => dispatch('start')}>
         {primaryLabel}
       </button>
-      <a class="cta-secondary" href={secondaryHref}>
+      <a
+        class="cta-secondary"
+        href={secondaryHref}
+        target={secondaryExternal ? '_blank' : undefined}
+        rel={secondaryExternal ? 'noopener noreferrer' : undefined}
+      >
         {secondaryLabel}
       </a>
     </div>

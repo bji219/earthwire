@@ -32,5 +32,12 @@ coverage/
 # local kit exports
 kit-exports/
 
+# issued Pro keys, the ledger and the generated PDFs.
+# This repo is public — committing these hands out every key ever sold.
+.keys/
+
 # claude session data
 .claude/
+
+# generated Etsy listing screenshots
+listing-assets/

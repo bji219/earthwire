@@ -12,6 +12,8 @@
   import { trimBuffer, stitchBuffers, normalizeBuffer, appendSilence } from '$lib/kit/audio-processor';
   import { encodeAiff } from '$lib/kit/aiff-encoder';
   import { importOp1Kit } from '$lib/kit/op1-import';
+  import { canExport, exportsRemaining, isUnlocked, openUnlock, recordExport } from '$lib/stores/license';
+  import { selectedSoundCount } from '$lib/stores/my-sounds';
 
   const deviceModes: [DeviceMode, string, string][] = [
     ['op1', 'OP–1 / OP–Z', 'mono · 12s'],
@@ -64,6 +66,13 @@
   );
   $: overBudget = usedSeconds > maxSeconds;
 
+  $: exportsLeft = $exportsRemaining > 0;
+  $: exportTitle = !exportsLeft
+    ? 'Free exports used — unlock Pro for unlimited exports'
+    : overBudget
+      ? `Over ${maxSeconds}s — last sample(s) will be clipped to fit`
+      : '';
+
   function handleKitNameChange(e: Event) {
     kit.setName((e.target as HTMLInputElement).value);
   }
@@ -90,6 +99,9 @@
     if (e.key === 'ArrowUp')   { e.preventDefault(); activeSlot = Math.max(0,  activeSlot - 1); }
     if (e.key === ' ')         { e.preventDefault(); previewSlot(activeSlot); }
     if (e.key === 'Backspace' || e.key === 'Delete') {
+      // The My Sounds tab binds the same key on window. When it has a selection
+      // the press belongs to it, or deleting sounds would silently clear a slot.
+      if ($selectedSoundCount > 0) return;
       e.preventDefault();
       if (selectedSlots.size > 0) { clearSelected(); } else { kit.clearSlot(activeSlot); }
     }
@@ -127,6 +139,10 @@
   }
 
   async function doExport() {
+    if (!canExport()) {
+      openUnlock('export');
+      return;
+    }
     exporting = true;
     exportError = '';
     exportProgress = 0;
@@ -241,6 +257,9 @@
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
+      // Counted here rather than at the end: the kit has left the building, so a
+      // later failure in the credits sidecar must not hand back a free export.
+      recordExport();
       // Revoke after a delay — Safari downloads blobs asynchronously and gets a 404
       // if the object URL is revoked before the download manager has read all the bytes.
       setTimeout(() => URL.revokeObjectURL(url), 60_000);
@@ -284,13 +303,17 @@
 <div class="kit-builder">
   <!-- Header -->
   <div class="kit-header">
-    <span class="kit-label">drum kit</span>
-    <input
-      class="kit-name"
-      value={$kit.name}
-      on:change={handleKitNameChange}
-      placeholder="kit name…"
-    />
+    <label class="kit-label" for="kit-name-input">drum kit</label>
+    <div class="kit-name-field">
+      <span class="kit-name-icon" aria-hidden="true">✎</span>
+      <input
+        id="kit-name-input"
+        class="kit-name"
+        value={$kit.name}
+        on:change={handleKitNameChange}
+        placeholder="name your kit…"
+      />
+    </div>
   </div>
 
   <!-- Device mode toggle -->
@@ -352,13 +375,26 @@
     </button>
     <button
       class="export-btn"
+      class:locked={!exportsLeft}
       disabled={exporting}
-      title={overBudget ? `Over ${maxSeconds}s — last sample(s) will be clipped to fit` : ''}
+      title={exportTitle}
       on:click={doExport}
     >
-      {exporting ? 'exporting…' : 'export kit →'}
+      {#if exporting}
+        exporting…
+      {:else if !exportsLeft}
+        🔒 export kit →
+      {:else}
+        export kit →
+      {/if}
     </button>
   </div>
+
+  {#if !$isUnlocked && exportsLeft}
+    <p class="free-note">
+      {$exportsRemaining} free {$exportsRemaining === 1 ? 'export' : 'exports'} left
+    </p>
+  {/if}
   <input
     type="file"
     accept=".aif,.aiff"
@@ -395,15 +431,35 @@
   }
 
   .kit-header {
-    display: flex; justify-content: space-between; align-items: center;
+    display: flex; align-items: center; gap: 0.6rem;
     padding: 0.55rem 1rem; border-bottom: 1px solid var(--border); flex-shrink: 0;
   }
-  .kit-label { font-size: 0.78rem; font-weight: 600; }
-  .kit-name {
-    font-size: 0.74rem; border: none; background: transparent;
-    color: var(--text-muted); text-align: right; outline: none;
-    font-style: italic; font-family: var(--font-body); width: 50%;
+  .kit-label {
+    font-size: 0.78rem; font-weight: 600; flex-shrink: 0; cursor: pointer;
   }
+
+  /* Reads as an editable field rather than a right-aligned caption, so it is
+     obvious this is where the kit gets named. */
+  .kit-name-field {
+    display: flex; align-items: center; gap: 0.35rem; flex: 1; min-width: 0;
+    border: 1px solid var(--border); border-radius: 4px;
+    background: var(--bg-primary);
+    padding: 0.2rem 0.5rem;
+    transition: border-color 120ms;
+  }
+  .kit-name-field:hover { border-color: var(--text-muted); }
+  .kit-name-field:focus-within { border-color: var(--accent); }
+  .kit-name-icon {
+    font-size: 0.7rem; color: var(--text-muted); flex-shrink: 0; line-height: 1;
+  }
+  .kit-name-field:focus-within .kit-name-icon { color: var(--accent); }
+  .kit-name {
+    flex: 1; min-width: 0;
+    font-size: 0.76rem; border: none; background: transparent;
+    color: var(--text-primary); outline: none;
+    font-family: var(--font-body);
+  }
+  .kit-name::placeholder { color: var(--text-muted); font-style: italic; }
 
   .device-tabs { display: flex; border-bottom: 1px solid var(--border); flex-shrink: 0; }
   .device-tab {
@@ -450,6 +506,12 @@
     font-size: 0.7rem; color: #c0392b; padding: 0.3rem 1rem;
   }
 
+  .export-btn.locked { color: var(--text-muted); }
+  .free-note {
+    font-size: 0.62rem; color: var(--text-muted); text-align: right;
+    padding: 0 1rem 0.35rem; margin: 0; flex-shrink: 0;
+  }
+
   .bulk-bar {
     display: flex; align-items: center; gap: 0.6rem;
     padding: 0.35rem 1rem; background: var(--accent-bg);
@@ -476,7 +538,8 @@
     .kit-builder { height: auto; min-height: 100%; }
     .slot-list { overflow-y: visible; }
     .kit-header { padding: 0.65rem 0.85rem; }
-    .kit-name { width: 60%; font-size: 0.85rem; }
+    .kit-name { font-size: 0.9rem; }
+    .kit-name-field { padding: 0.35rem 0.6rem; }
     .kit-label { font-size: 0.85rem; }
     .device-tab {
       padding: 0.65rem 0;

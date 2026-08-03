@@ -23,8 +23,8 @@ export const PLAY_MODE_LABEL: Record<SlotPlayMode, string> = {
   gate:       'gate',
   loop:       'loop',
   gravity:    'gravity',
-  revoneshot: 'rev. one-shot',
-  revgate:    'rev. gate',
+  revoneshot: 'reverse one-shot',
+  revgate:    'reverse gate',
 };
 
 export interface SlotMeta {
