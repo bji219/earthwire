@@ -41,3 +41,6 @@ kit-exports/
 
 # generated Etsy listing screenshots
 listing-assets/
+
+# local scratch scripts
+test_freesound_export.py
