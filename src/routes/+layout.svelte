@@ -132,7 +132,10 @@
   }
   .layout-content {
     flex: 1;
-    overflow: hidden;
+    min-height: 0;
+    /* auto, not hidden: the kit designer manages its own internal scrolling and
+       never overflows here, but long pages like /docs need to scroll. */
+    overflow-y: auto;
     display: flex;
     flex-direction: column;
   }

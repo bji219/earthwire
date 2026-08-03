@@ -38,3 +38,6 @@ kit-exports/
 
 # claude session data
 .claude/
+
+# generated Etsy listing screenshots
+listing-assets/

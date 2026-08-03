@@ -208,20 +208,24 @@ Format details that matter: AIFC `sowt` 16-bit, FVER chunk, 64-byte COMM, 4100-b
 
 ### Per-slot playback mode
 
-Each `SlotMeta` has a `playMode: 'oneshot' | 'loop' | 'gate' | 'reverse'` (default `'oneshot'`). The kit store exposes `setSlotPlayMode(i, mode)` and `cyclePlayMode(i)`; the latter advances through `PLAY_MODE_CYCLE` and is wired to a toggle button on `SlotRow` (next to the ✂ trim icon, dispatches the `cyclemode` event). Icons/labels are exported from `src/lib/kit/types.ts` as `PLAY_MODE_ICON` and `PLAY_MODE_LABEL`.
+Each `SlotMeta` has a `playMode` (default `'oneshot'`), one of six values. The kit store exposes `setSlotPlayMode(i, mode)` and `cyclePlayMode(i)`; the latter advances through `PLAY_MODE_CYCLE` and is wired to a toggle button on `SlotRow` (next to the ✂ trim icon, dispatches the `cyclemode` event). Icons and labels are exported from `src/lib/kit/types.ts` as `PLAY_MODE_ICON` and `PLAY_MODE_LABEL`.
 
 At export time, `op1-metadata.ts` translates the string mode to two orthogonal OP-1 APPL integer arrays. Codes confirmed via the operator1/op1 wiki, schollz/teoperator, padenot/libop1, and joseph-holland/op-patchstudio:
 
-| Mode    | `playmode` | `reverse` |
-|---------|-----------:|----------:|
-| oneshot | 4096       | 12000     |
-| loop    | 20480      | 12000     |
-| gate    | 8192       | 12000     |
-| reverse | 4096       | 18432     |
+| Mode         | Icon | `playmode` | `reverse` |
+|--------------|:----:|-----------:|----------:|
+| `oneshot`    | ⇥    | 8192       | 12000     |
+| `gate`       | ▶    | 4096       | 12000     |
+| `loop`       | ∞    | 28672      | 12000     |
+| `gravity`    | G    | 20480      | 12000     |
+| `revoneshot` | ⇤    | 12288      | 18432     |
+| `revgate`    | ◀    | 4096       | 18432     |
 
-The `reverse=12000` "forward" value is preserved from the previous baseline (matched against the verified-working `808.aif` Field kit) rather than switching to the research-canonical `8192`, to avoid regressing already-working exports.
+The `reverse=12000` "forward" value is preserved from this codebase's working baseline (matched against the verified-working `808.aif` Field kit) rather than switching to the research-canonical `8192`, to avoid regressing already-working exports.
 
-In the kit editor, previewing a slot whose `playMode === 'reverse'` plays the trimmed region back-to-front. `audioPlayer.play()` takes an optional `reverse` flag; when true it builds a frame-reversed `AudioBuffer` (using `new AudioBuffer({...})` per the kit-store rule, never `ctx.createBuffer`) and plays the whole buffer from position 0. Loop and gate previews are intentionally not implemented in the kit editor — they are export-only behaviors on the OP-1 itself.
+The docs page at `/docs/getting-started` renders this list by iterating `PLAY_MODE_CYCLE` and looking up `PLAY_MODE_ICON` / `PLAY_MODE_LABEL`, with descriptions in a local `PLAY_MODE_BLURB` map. Adding a mode to `types.ts` therefore surfaces in the docs automatically, but **the blurb map is `Record<SlotPlayMode, string>`, so TypeScript will fail the build until you write its description.** That is deliberate.
+
+In the kit editor, previewing a slot whose `playMode` is `revoneshot` or `revgate` plays the trimmed region back-to-front. `audioPlayer.play()` takes an optional `reverse` flag; when true it builds a frame-reversed `AudioBuffer` (using `new AudioBuffer({...})` per the kit-store rule, never `ctx.createBuffer`) and plays the whole buffer from position 0. Loop, gate and gravity previews are intentionally not implemented in the kit editor; they are export-only behaviors on the OP-1 itself.
 
 ---
 

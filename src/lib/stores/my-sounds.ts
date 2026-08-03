@@ -1,5 +1,12 @@
 // src/lib/stores/my-sounds.ts
 
+import { writable } from 'svelte/store';
+
+// How many sounds are selected in the My Sounds tab. Both this tab and the kit
+// panel bind Backspace/Delete on window, so the kit needs a way to know the
+// sample browser owns the key press and stand down.
+export const selectedSoundCount = writable(0);
+
 export interface LocalSound {
   id: string;          // crypto.randomUUID()
   name: string;

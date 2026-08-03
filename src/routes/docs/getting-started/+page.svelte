@@ -1,5 +1,18 @@
 <script lang="ts">
   import { FREE_EXPORT_LIMIT, FREE_UPLOAD_LIMIT, ETSY_LISTING_URL } from '$lib/license/limits';
+  import { PLAY_MODE_CYCLE, PLAY_MODE_ICON, PLAY_MODE_LABEL } from '$lib/kit/types';
+  import type { SlotPlayMode } from '$lib/kit/types';
+
+  // Driven off PLAY_MODE_CYCLE so adding a mode to the app cannot leave the
+  // docs silently listing a stale set.
+  const PLAY_MODE_BLURB: Record<SlotPlayMode, string> = {
+    oneshot:    'Plays the whole trimmed sample once per press, however briefly you tap the key. The default, and what you want for most drums.',
+    gate:       'Plays only while you hold the key and stops the instant you let go. Good for sustained sounds you want to cut short.',
+    loop:       'Repeats the trimmed region over and over for as long as the key is held. Useful for textures and sustained tones.',
+    gravity:    'Bounces back and forth through the sample, forwards then backwards, while the key is held. The OP-1 calls this gravity.',
+    revoneshot: 'Plays the trimmed region backwards once per press. Previewing in the browser reverses too, so you hear what you will get.',
+    revgate:    'Plays backwards while you hold the key and stops on release. Reverse and gate combined.',
+  };
 </script>
 
 <svelte:head>
@@ -24,7 +37,7 @@
       <li>Open the <strong>Kit Designer</strong> (the home page). On your first visit you'll see a landing screen. Click <strong>Build a Kit</strong> to enter.</li>
       <li>In the <strong>Sample Browser</strong> on the left, search <strong>Freesound</strong> for drum and instrument samples, or <strong>Bird Sounds</strong> (Xeno-canto) for field recordings. You can also upload your own files under <strong>My Sounds</strong>.</li>
       <li>Drag a sample onto one of the 24 slots in the <strong>Kit Builder</strong> on the right, or click a sample to preview and then drop it into the next empty slot.</li>
-      <li>Click the <strong>✂ trim</strong> icon on a slot to open the waveform editor and set <strong>trimStart</strong>/<strong>trimEnd</strong> for that slot. This is a Pro feature — see below.</li>
+      <li>Click the <strong>✂ trim</strong> icon on a slot to open the waveform editor and set <strong>trimStart</strong>/<strong>trimEnd</strong> for that slot. This is a Pro feature, see below.</li>
       <li>Pick a <strong>device mode</strong>: OP-1 (mono, 12s max) or OP-1 Field (stereo, 20s max).</li>
       <li>Click <strong>Export</strong> to download a ready-to-load <code>.aif</code> drum kit. If any slots come from Freesound, a <code>-credits.txt</code> sidecar is downloaded too.</li>
       <li>Copy the <code>.aif</code> into your OP-1 / OP-1 Field's drum folder and load it like any other kit.</li>
@@ -37,18 +50,11 @@
       Each slot has a playback mode, cycled with the button next to the ✂ icon. The mode is written
       into the exported kit and takes effect on the device:
     </p>
-    <dl>
-      <dt>One-shot</dt>
-      <dd>Plays the whole trimmed sample once per press. The default, and what you want for most drums.</dd>
-
-      <dt>Loop</dt>
-      <dd>Repeats the trimmed region for as long as the key is held.</dd>
-
-      <dt>Gate</dt>
-      <dd>Plays while the key is held and stops the moment you release it.</dd>
-
-      <dt>Reverse</dt>
-      <dd>Plays the trimmed region backwards. Previewing in the browser reverses too, so you hear what you'll get.</dd>
+    <dl class="modes">
+      {#each PLAY_MODE_CYCLE as mode}
+        <dt><span class="mode-icon">{PLAY_MODE_ICON[mode]}</span>{PLAY_MODE_LABEL[mode]}</dt>
+        <dd>{PLAY_MODE_BLURB[mode]}</dd>
+      {/each}
     </dl>
   </section>
 
@@ -102,7 +108,7 @@
     color: var(--text-primary, #2C2C2C);
     line-height: 1.7;
     background: var(--bg-primary, #FAFAF7);
-    min-height: 100vh;
+    width: 100%;
   }
   .back {
     color: var(--accent, #1A6B5A);
@@ -158,6 +164,30 @@
   dd {
     margin-left: 0;
     color: var(--text-secondary, #6B6B6B);
+  }
+
+  .modes dt {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+  }
+  .mode-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.6rem;
+    height: 1.6rem;
+    flex-shrink: 0;
+    border: 1px solid var(--border, #DDD8CF);
+    border-radius: 4px;
+    background: var(--bg-secondary, #F0EDE6);
+    color: var(--accent, #1A6B5A);
+    font-family: var(--font-mono, monospace);
+    font-size: 0.85rem;
+    line-height: 1;
+  }
+  .modes dd {
+    margin-left: 2.2rem;
   }
   .tip {
     color: var(--accent, #1A6B5A);

@@ -1,7 +1,7 @@
 <!-- src/lib/components/MySoundsTab.svelte -->
 <script lang="ts">
-  import { createEventDispatcher, onMount } from 'svelte';
-  import { loadSounds, saveSound, deleteSound, type LocalSound } from '$lib/stores/my-sounds';
+  import { createEventDispatcher, onMount, onDestroy } from 'svelte';
+  import { loadSounds, saveSound, deleteSound, selectedSoundCount, type LocalSound } from '$lib/stores/my-sounds';
   import { formatDuration } from '$lib/kit/types';
   import { extractPeaks, peaksToSvgPath, decodeAudioData } from '$lib/kit/audio-processor';
   import { dragPayload } from '$lib/stores/drag';
@@ -118,6 +118,18 @@
     waveformPaths = waveformPaths;
   }
 
+  $: selectedSoundCount.set(selectedIds.size);
+  onDestroy(() => selectedSoundCount.set(0));
+
+  function handleKeydown(e: KeyboardEvent) {
+    if (e.target instanceof HTMLInputElement) return;
+    if (selectedIds.size === 0) return;
+    if (e.key === 'Backspace' || e.key === 'Delete') {
+      e.preventDefault();
+      deleteSelected();
+    }
+  }
+
   function handleRowClick(sound: LocalSound, e: MouseEvent) {
     if (e.shiftKey) {
       if (lastClickedId) {
@@ -153,6 +165,8 @@
     dragPayload.set(null);
   }
 </script>
+
+<svelte:window on:keydown={handleKeydown} />
 
 <div class="my-sounds">
   <label
