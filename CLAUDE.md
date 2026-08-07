@@ -203,7 +203,14 @@ Three call sites, all thin. The feature code behind each is untouched.
 
 Device modes:
 - `op1`: mono, 16-bit, 12s max
-- `op1field`: stereo, 24-bit, 20s max
+- `op1field`: stereo, 16-bit, 20s max
+
+**Both modes are 16-bit, deliberately — do not "upgrade" the Field to 24-bit.** DigiChain, the most
+widely used OP-1/Field kit exporter, hardcodes `numBytesPerSample = 2` and `setInt16(26, 16)` in its
+`encodeAif`, which takes no bit-depth argument at all, while its WAV path *does* accept one. The
+omission is a decision, not an oversight. The Field's advertised "32-bit audio" describes its
+internal signal chain, not the drum patch format. Writing 24-bit would be an unverifiable experiment
+risking firmware rejection, with nothing to gain on percussive one-shots.
 
 Format details that matter: AIFC `sowt` 16-bit, FVER chunk, 64-byte COMM, 4100-byte APPL (4096-byte JSON + newline), `0x7FFFFFFE` fixed-point positions, and all 24 slots must satisfy `start < end` (empty slots get 1-frame silence regions).
 
