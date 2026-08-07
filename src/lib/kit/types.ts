@@ -38,6 +38,7 @@ export interface SlotMeta {
   color: string;        // assigned palette color
   playMode: SlotPlayMode;
   pitchSemitones: number; // baked into the audio at export, not device metadata
+  gainDb: number;         // ditto — applied after the normalize lift
 }
 
 export interface KitMeta {

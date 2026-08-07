@@ -1,5 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import { trimBuffer, extractPeaks, extractPeaksRange, normalizeBuffer } from './audio-processor.js';
+import {
+  trimBuffer, extractPeaks, extractPeaksRange,
+  normalizeBuffer, normalizeFactor, peakInRange,
+} from './audio-processor.js';
 
 // Minimal AudioBuffer polyfill for Node/Vitest
 class MockAudioBuffer {
@@ -131,6 +134,55 @@ describe('normalizeBuffer', () => {
     const buf = makeBuf(new Array(100).fill(quietPeak), 100) as any;
     normalizeBuffer(buf as AudioBuffer, 0.9);
     expect(buf.getChannelData(0)[0]).toBeCloseTo(0.9, 3);
+  });
+});
+
+describe('peakInRange', () => {
+  it('finds the peak over the whole buffer by default', () => {
+    const buf = makeBuf([0.1, -0.7, 0.3], 100) as any;
+    expect(peakInRange(buf as AudioBuffer)).toBeCloseTo(0.7, 6);
+  });
+
+  it('ignores samples outside the region', () => {
+    // loud first half, quiet second half
+    const samples = [...new Array(50).fill(0.9), ...new Array(50).fill(0.1)];
+    const buf = makeBuf(samples, 100) as any;
+    expect(peakInRange(buf as AudioBuffer, 0.5, 1)).toBeCloseTo(0.1, 6);
+  });
+
+  it('takes the global peak across channels', () => {
+    const buf = makeStereoBuf(new Array(10).fill(0.2), new Array(10).fill(0.6), 100) as any;
+    expect(peakInRange(buf as AudioBuffer)).toBeCloseTo(0.6, 6);
+  });
+
+  it('is zero for silence', () => {
+    expect(peakInRange(makeBuf(new Array(10).fill(0), 100) as any)).toBe(0);
+  });
+});
+
+// Pins the lift rule so preview and export cannot drift apart, and so the
+// split out of normalizeBuffer cannot quietly change export behaviour.
+describe('normalizeFactor', () => {
+  it('lifts quiet material to the target', () => {
+    expect(normalizeFactor(0.1, 0.9)).toBeCloseTo(9, 6);
+    expect(normalizeFactor(0.45, 0.9)).toBeCloseTo(2, 6);
+  });
+
+  it('leaves already-loud material alone', () => {
+    expect(normalizeFactor(0.6)).toBe(1);
+    expect(normalizeFactor(1.0)).toBe(1);
+  });
+
+  it('leaves near-silence alone rather than amplifying the noise floor', () => {
+    expect(normalizeFactor(0.00005)).toBe(1);
+    expect(normalizeFactor(0)).toBe(1);
+  });
+
+  it('agrees with what normalizeBuffer actually applies', () => {
+    const buf = makeBuf(new Array(100).fill(0.1), 100) as any;
+    const expected = normalizeFactor(peakInRange(buf as AudioBuffer), 0.9);
+    normalizeBuffer(buf as AudioBuffer, 0.9);
+    expect(buf.getChannelData(0)[0]).toBeCloseTo(0.1 * expected, 6);
   });
 });
 

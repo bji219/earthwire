@@ -138,6 +138,7 @@ src/
       aiff-encoder.ts         # Encodes Float32Array → valid AIFF binary
       aiff-parser.ts          # Reads AIFF/AIFC chunks back out
       pitch.ts                # pitchRate, pitchedDuration, resampleBuffer (baked, not metadata)
+      gain.ts                 # dbToLinear, applyGain (baked, not metadata)
       op1-metadata.ts         # Builds OP-1 APPL chunk JSON for drum kit slot timings
       op1-metadata-parse.ts   # Parses an APPL chunk back into slot timings
       op1-import.ts           # Imports an existing OP-1 kit into the editor
@@ -237,6 +238,26 @@ Audio); the Playwright pass parses the exported COMM chunk and asserts the frame
 clamp, `SegmentBar`, `SlotRow`. Pitching down lengthens a slot and can overflow the 12s/20s budget,
 which the existing tail-clip handles. The clamp converts between output and source seconds via the
 rate, reducing to the original arithmetic at rate 1.
+
+### Per-slot gain — also baked
+
+`SlotMeta.gainDb` (−24…+6, default 0). Applied by `applyGain()` in
+[src/lib/kit/gain.ts](src/lib/kit/gain.ts); the APPL `volume` array stays `Array(24).fill(8192)` for
+the same reason `pitch` stays zeroed.
+
+**Order matters twice, and both are easy to get wrong:**
+
+1. Export runs `trimBuffer -> resampleBuffer -> normalizeBuffer -> applyGain`. Gain must come *after*
+   normalize: normalize lifts anything under 0.5 peak up to 0.9, so gaining first would let it boost
+   a deliberate cut straight back.
+2. Preview must model the lift too. `previewSlot` passes
+   `normalizeFactor(peakInRange(...)) * dbToLinear(gainDb)` into `audioPlayer.play()`. Without it a
+   quiet slot previews quiet, the user compensates with +6, and the export then normalizes *and*
+   applies the boost. `normalizeFactor` and `peakInRange` were split out of `normalizeBuffer`
+   precisely so preview can ask the question without mutating.
+
+`applyGain` does not clamp; `convertSamples` in the encoder already clamps to ±1.0, so a boost
+hard-clips rather than wrapping.
 
 ### Per-slot playback mode
 

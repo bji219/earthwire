@@ -248,17 +248,37 @@ export function trimBuffer(
  * (e.g. Freesound previews peak around −15 dBFS vs local files at 0 dBFS).
  * This ensures all slots are perceptually consistent in the exported kit.
  */
-export function normalizeBuffer(buf: AudioBuffer, targetPeak = 0.9): void {
+/** Peak absolute sample within a region, in seconds. Clamped to the buffer. */
+export function peakInRange(buf: AudioBuffer, startSec = 0, endSec?: number): number {
+  const sr = buf.sampleRate;
+  const start = Math.max(0, Math.floor(startSec * sr));
+  const end = endSec === undefined ? buf.length : Math.min(buf.length, Math.floor(endSec * sr));
   let peak = 0;
   for (let ch = 0; ch < buf.numberOfChannels; ch++) {
     const data = buf.getChannelData(ch);
-    for (let i = 0; i < data.length; i++) {
+    for (let i = start; i < end; i++) {
       const abs = Math.abs(data[i]);
       if (abs > peak) peak = abs;
     }
   }
-  if (peak < 0.0001 || peak > 0.5) return; // silence or already loud enough — don't boost
-  const gain = targetPeak / peak;
+  return peak;
+}
+
+/**
+ * The multiplier normalizeBuffer would apply to a given peak. Split out so
+ * preview can model the same lift without mutating: export normalizes quiet
+ * slots, and if preview did not, setting gain by ear would be misleading.
+ *
+ * Only lifts quiet material — silence and already-loud samples return 1.
+ */
+export function normalizeFactor(peak: number, targetPeak = 0.9): number {
+  if (peak < 0.0001 || peak > 0.5) return 1;
+  return targetPeak / peak;
+}
+
+export function normalizeBuffer(buf: AudioBuffer, targetPeak = 0.9): void {
+  const gain = normalizeFactor(peakInRange(buf), targetPeak);
+  if (gain === 1) return;
   for (let ch = 0; ch < buf.numberOfChannels; ch++) {
     const data = buf.getChannelData(ch);
     for (let i = 0; i < data.length; i++) {

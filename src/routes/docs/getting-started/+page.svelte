@@ -38,7 +38,7 @@
       <li>In the <strong>Sample Browser</strong> on the left, search <strong>Freesound</strong> for drum and instrument samples, or <strong>Bird Sounds</strong> (Xeno-canto) for field recordings. You can also upload your own files under <strong>My Sounds</strong>.</li>
       <li>Drag a sample onto one of the 24 slots in the <strong>Kit Builder</strong> on the right, or click a sample to preview and then drop it into the next empty slot.</li>
       <li>Click the <strong>✂ trim</strong> icon on a slot to open the waveform editor and set <strong>trimStart</strong>/<strong>trimEnd</strong> for that slot. This is a Pro feature, see below.</li>
-      <li>Use the <strong>− 0 +</strong> stepper to pitch a slot up or down in semitones. Free, and it applies to the audio itself.</li>
+      <li>Click the <strong>▾</strong> button on a slot to set its <strong>pitch</strong> and <strong>gain</strong>. Both are free and both apply to the audio itself.</li>
       <li>Pick a <strong>device mode</strong>: OP-1 (mono, 12s max) or OP-1 Field (stereo, 20s max).</li>
       <li>Click <strong>Export</strong> to download a ready-to-load <code>.aif</code> drum kit. If any slots come from Freesound, a <code>-credits.txt</code> sidecar is downloaded too.</li>
       <li>Copy the <code>.aif</code> into your OP-1 / OP-1 Field's drum folder and load it like any other kit.</li>
@@ -46,11 +46,20 @@
   </section>
 
   <section>
-    <h2>Pitch</h2>
+    <h2>Pitch and Gain</h2>
     <p>
-      Every slot has a <strong>− 0 +</strong> stepper that shifts it by semitones, up to two octaves
-      either way. Previewing plays the pitched version, including when the slot is reversed, so what
-      you hear is what gets exported.
+      The <strong>▾</strong> button on each slot opens pitch and gain together.
+    </p>
+    <p>
+      <strong>Pitch</strong> shifts the slot by semitones, up to two octaves either way. Previewing
+      plays the pitched version, including when the slot is reversed, so what you hear is what gets
+      exported.
+    </p>
+    <p>
+      <strong>Gain</strong> sets the level from −24 to +6 dB, which is how you balance a loud kick
+      against a quiet field recording. Earthwire already lifts very quiet samples automatically on
+      export, and gain applies on top of that lift, so 0 dB is the level you hear when previewing.
+      Pushing well past 0 on an already loud sample will clip it.
     </p>
     <p>
       The pitch is applied to the audio itself rather than saved as a device setting, which means it

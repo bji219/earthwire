@@ -5,6 +5,7 @@ import { parseAiff } from './aiff-parser';
 import { parseOp1Appl } from './op1-metadata-parse';
 import { SLOT_COLORS, type DeviceMode, type SlotMeta } from './types';
 import { PITCH_DEFAULT } from './pitch';
+import { GAIN_DEFAULT_DB } from './gain';
 import { kit } from '../stores/kit';
 
 export interface ImportSummary {
@@ -66,6 +67,7 @@ export async function importOp1Kit(file: File): Promise<ImportSummary> {
       // An imported kit already has any pitch baked into its audio, so the
       // slot starts unpitched rather than trying to recover a value.
       pitchSemitones: PITCH_DEFAULT,
+      gainDb: GAIN_DEFAULT_DB,
     };
     kit.setSlot(i, slotMeta, slotBuffer);
     filledCount++;

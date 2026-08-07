@@ -9,12 +9,13 @@
     type DeviceMode, type SlotMeta,
   } from '$lib/kit/types';
   import { buildOp1Metadata } from '$lib/kit/op1-metadata';
-  import { trimBuffer, stitchBuffers, normalizeBuffer, appendSilence } from '$lib/kit/audio-processor';
+  import { trimBuffer, stitchBuffers, normalizeBuffer, normalizeFactor, peakInRange, appendSilence } from '$lib/kit/audio-processor';
   import { encodeAiff } from '$lib/kit/aiff-encoder';
   import { importOp1Kit } from '$lib/kit/op1-import';
   import { canExport, exportsRemaining, isUnlocked, openUnlock, recordExport } from '$lib/stores/license';
   import { selectedSoundCount } from '$lib/stores/my-sounds';
   import { pitchRate, pitchedDuration, resampleBuffer, PITCH_DEFAULT } from '$lib/kit/pitch';
+  import { applyGain, dbToLinear, GAIN_DEFAULT_DB } from '$lib/kit/gain';
 
   const deviceModes: [DeviceMode, string, string][] = [
     ['op1', 'OP–1 / OP–Z', 'mono · 12s'],
@@ -120,6 +121,7 @@
       color: SLOT_COLORS[index],
       playMode: PLAY_MODE_DEFAULT,
       pitchSemitones: PITCH_DEFAULT,
+      gainDb: GAIN_DEFAULT_DB,
     }, buffer);
   }
 
@@ -138,6 +140,10 @@
       slot.trimEnd,
       slot.playMode === 'revoneshot' || slot.playMode === 'revgate',
       pitchRate(slot.pitchSemitones ?? 0),
+      // Export normalizes quiet slots before applying gain, so preview has to
+      // model the same lift or judging gain by ear would be misleading.
+      normalizeFactor(peakInRange(buf, slot.trimStart, slot.trimEnd))
+        * dbToLinear(slot.gainDb ?? GAIN_DEFAULT_DB),
     );
   }
 
@@ -191,6 +197,9 @@
         const rate = pitchRate(slot.pitchSemitones ?? PITCH_DEFAULT);
         const pitched = rate === 1 ? trimmed : await resampleBuffer(trimmed, rate);
         normalizeBuffer(pitched);
+        // Strictly after normalize: it lifts anything under 0.5 peak up to 0.9,
+        // so gaining first would let it boost a deliberate cut straight back.
+        applyGain(pitched, slot.gainDb ?? GAIN_DEFAULT_DB);
         trimmedBuffers.push(pitched);
         exportProgress = ++done / filledCount * 0.8;
         await new Promise(r => setTimeout(r, 0)); // yield to browser for repaint
@@ -366,6 +375,8 @@
         on:trim={e => kit.updateSlotTrim(i, e.detail.trimStart, e.detail.trimEnd)}
         on:cyclemode={() => kit.cyclePlayMode(i)}
         on:pitch={e => kit.adjustSlotPitch(i, e.detail.delta)}
+        on:gain={e => kit.adjustSlotGain(i, e.detail.delta)}
+        on:resetfx={() => { kit.setSlotPitch(i, PITCH_DEFAULT); kit.setSlotGain(i, GAIN_DEFAULT_DB); }}
         on:preview={() => previewSlot(i)}
         on:fill={handleFill}
         on:reorder={handleReorder}

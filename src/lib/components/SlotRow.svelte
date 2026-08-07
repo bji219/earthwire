@@ -10,6 +10,7 @@
     PLAY_MODE_ICON, PLAY_MODE_LABEL,
   } from '$lib/kit/types';
   import { pitchedDuration, PITCH_MIN, PITCH_MAX } from '$lib/kit/pitch';
+  import { GAIN_MIN_DB, GAIN_MAX_DB } from '$lib/kit/gain';
   import { dragPayload } from '$lib/stores/drag';
   import { isUnlocked, openUnlock } from '$lib/stores/license';
   import type { SlotMeta } from '$lib/kit/types';
@@ -28,6 +29,8 @@
     preview: void;
     cyclemode: void;
     pitch: { delta: number };
+    gain: { delta: number };
+    resetfx: void;
     fill: { index: number; name: string; sourceType: 'local' | 'freesound' | 'xeno-canto'; remoteSrc?: string; buffer: AudioBuffer };
     reorder: { fromIndex: number; toIndex: number };
   }>();
@@ -45,6 +48,13 @@
   $: trimDuration = slot ? pitchedDuration(slot) : 0;
   $: pitchValue = slot?.pitchSemitones ?? 0;
   $: pitchLabel = pitchValue > 0 ? `+${pitchValue}` : `${pitchValue}`;
+  $: gainValue = slot?.gainDb ?? 0;
+  $: gainLabel = gainValue > 0 ? `+${gainValue}` : `${gainValue}`;
+  $: isModified = pitchValue !== 0 || gainValue !== 0;
+
+  let showFx = false;
+  // Collapse when the sample goes away, so the strip can't outlive its slot.
+  $: if (!slot && showFx) showFx = false;
 
   let isDragOver = false;
   let editing = false;
@@ -141,26 +151,15 @@
         aria-label="Playback mode: {PLAY_MODE_LABEL[slot.playMode]}"
       >{PLAY_MODE_ICON[slot.playMode]}</button>
 
-      <span class="pitch" class:set={pitchValue !== 0}>
-        <button
-          class="pitch-btn"
-          disabled={pitchValue <= PITCH_MIN}
-          on:click|stopPropagation={() => dispatch('pitch', { delta: -1 })}
-          title="Pitch down a semitone"
-          aria-label="Pitch down a semitone"
-        >−</button>
-        <span
-          class="pitch-val"
-          title="Pitch: {pitchLabel} semitones (baked into the export)"
-        >{pitchLabel}</span>
-        <button
-          class="pitch-btn"
-          disabled={pitchValue >= PITCH_MAX}
-          on:click|stopPropagation={() => dispatch('pitch', { delta: 1 })}
-          title="Pitch up a semitone"
-          aria-label="Pitch up a semitone"
-        >+</button>
-      </span>
+      <button
+        class="fx-btn"
+        class:open={showFx}
+        class:set={isModified}
+        on:click|stopPropagation={() => showFx = !showFx}
+        title={isModified ? `Pitch ${pitchLabel}, gain ${gainLabel}` : 'Pitch and gain'}
+        aria-label="Pitch and gain settings"
+        aria-expanded={showFx}
+      >▾</button>
     {/if}
 
     <span class="slot-dur">
@@ -175,6 +174,54 @@
       >✕</button>
     {/if}
   </div>
+
+  {#if showFx && slot}
+    <div class="fx-strip">
+      <span class="fx-label">pitch</span>
+      <span class="fx-stepper">
+        <button
+          class="fx-step"
+          disabled={pitchValue <= PITCH_MIN}
+          on:click|stopPropagation={() => dispatch('pitch', { delta: -1 })}
+          aria-label="Pitch down a semitone"
+        >−</button>
+        <span class="fx-val" class:set={pitchValue !== 0}>{pitchLabel}</span>
+        <button
+          class="fx-step"
+          disabled={pitchValue >= PITCH_MAX}
+          on:click|stopPropagation={() => dispatch('pitch', { delta: 1 })}
+          aria-label="Pitch up a semitone"
+        >+</button>
+      </span>
+      <span class="fx-unit">semitones</span>
+
+      <span class="fx-label fx-label-2">gain</span>
+      <span class="fx-stepper">
+        <button
+          class="fx-step"
+          disabled={gainValue <= GAIN_MIN_DB}
+          on:click|stopPropagation={() => dispatch('gain', { delta: -1 })}
+          aria-label="Gain down one decibel"
+        >−</button>
+        <span class="fx-val" class:set={gainValue !== 0}>{gainLabel}</span>
+        <button
+          class="fx-step"
+          disabled={gainValue >= GAIN_MAX_DB}
+          on:click|stopPropagation={() => dispatch('gain', { delta: 1 })}
+          aria-label="Gain up one decibel"
+        >+</button>
+      </span>
+      <span class="fx-unit">dB</span>
+
+      {#if isModified}
+        <button
+          class="fx-reset"
+          on:click|stopPropagation={() => dispatch('resetfx')}
+          title="Back to unpitched and unity gain"
+        >reset</button>
+      {/if}
+    </div>
+  {/if}
 
   {#if editing && slot && buffer}
     <div class="variant-bar">
@@ -269,29 +316,54 @@
   .slot-row.active .mode-btn.active { color: #4a7c59; }
   .mode-btn.mode-reverse { color: var(--accent, #4a7c59); }
 
-  /* Hidden until hover while unpitched, like the trim and mode buttons, so 24
-     untouched rows stay calm. A pitched slot always advertises itself. */
-  .pitch {
-    display: flex; align-items: center; gap: 0.05rem; flex-shrink: 0;
-    opacity: 0;
+  /* Hidden until hover while at defaults, like the trim and mode buttons, so 24
+     untouched rows stay calm. A modified slot always advertises itself. */
+  .fx-btn {
+    font-size: 0.62rem; color: var(--text-muted); background: none;
+    border: none; cursor: pointer; padding: 0 0.35rem; flex-shrink: 0;
+    line-height: 1; opacity: 0;
   }
-  .slot-row:hover .pitch { opacity: 1; }
-  .pitch.set { opacity: 1; }
-  .pitch-btn {
+  .slot-row:hover .fx-btn { opacity: 1; }
+  .fx-btn.open,
+  .fx-btn.set { opacity: 1; color: var(--accent, #4a7c59); }
+  .fx-btn.open { transform: rotate(180deg); }
+  .slot-row.active .fx-btn { color: #999; }
+  .slot-row.active .fx-btn.open,
+  .slot-row.active .fx-btn.set { color: #4a7c59; }
+
+  .fx-strip {
+    display: flex; align-items: center; gap: 0.35rem;
+    padding: 0.4rem 1rem 0.5rem 2.6rem;
+    background: var(--bg-secondary, #F0EDE6);
+    border-bottom: 1px solid var(--border-light, #eee);
+    font-size: 0.62rem; color: var(--text-muted);
+  }
+  .fx-label { font-weight: 600; color: var(--text-secondary, #6B6B6B); }
+  .fx-label-2 { margin-left: 0.9rem; }
+  .fx-stepper {
+    display: flex; align-items: center; gap: 0.05rem;
+    border: 1px solid var(--border, #DDD8CF); border-radius: 3px;
+    background: var(--bg-input, #fff);
+  }
+  .fx-step {
     font-size: 0.7rem; color: var(--text-muted); background: none;
-    border: none; cursor: pointer; padding: 0 0.15rem; line-height: 1;
+    border: none; cursor: pointer; padding: 0.05rem 0.3rem; line-height: 1;
   }
-  .pitch-btn:hover:not(:disabled) { color: var(--text-primary); }
-  .pitch-btn:disabled { opacity: 0.3; cursor: not-allowed; }
-  .pitch-val {
-    font-family: var(--font-mono, monospace);
-    font-size: 0.6rem; color: var(--text-muted);
-    min-width: 1.5rem; text-align: center; line-height: 1;
+  .fx-step:hover:not(:disabled) { color: var(--text-primary); }
+  .fx-step:disabled { opacity: 0.3; cursor: not-allowed; }
+  .fx-val {
+    font-family: var(--font-mono, monospace); font-size: 0.6rem;
+    min-width: 1.7rem; text-align: center; color: var(--text-muted);
   }
-  .pitch.set .pitch-val { color: var(--accent, #4a7c59); font-weight: 600; }
-  .slot-row.active .pitch-btn,
-  .slot-row.active .pitch-val { color: #999; }
-  .slot-row.active .pitch.set .pitch-val { color: #4a7c59; }
+  .fx-val.set { color: var(--accent, #4a7c59); font-weight: 600; }
+  .fx-unit { font-size: 0.58rem; opacity: 0.8; }
+  .fx-reset {
+    margin-left: auto; font-size: 0.58rem; background: none;
+    border: 1px solid var(--border, #DDD8CF); border-radius: 3px;
+    color: var(--text-muted); cursor: pointer; padding: 0.1rem 0.4rem;
+    font-family: var(--font-body);
+  }
+  .fx-reset:hover { color: var(--text-primary); border-color: var(--text-muted); }
 
   .slot-dur {
     font-size: 0.68rem; color: var(--text-muted);
@@ -355,16 +427,26 @@
       align-items: center;
       justify-content: center;
     }
-    /* No hover on touch, so the stepper is always visible and tap-sized. */
-    .pitch { opacity: 1; }
-    .pitch-btn {
-      font-size: 0.95rem;
-      min-width: 30px;
+    /* No hover on touch, so the toggle is always visible and tap-sized. */
+    .fx-btn {
+      opacity: 1;
+      font-size: 0.9rem;
+      padding: 0.5rem 0.6rem;
+      min-width: 32px;
       min-height: 36px;
       display: flex;
       align-items: center;
       justify-content: center;
     }
-    .pitch-val { font-size: 0.72rem; min-width: 1.8rem; }
+    .fx-strip { font-size: 0.75rem; padding-left: 1rem; flex-wrap: wrap; }
+    .fx-step {
+      font-size: 1rem;
+      min-width: 32px;
+      min-height: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .fx-val { font-size: 0.8rem; min-width: 2rem; }
   }
 </style>
