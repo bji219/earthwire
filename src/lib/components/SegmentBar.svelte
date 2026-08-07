@@ -1,6 +1,7 @@
 <script lang="ts">
   import { createEventDispatcher } from 'svelte';
   import { SLOT_COLORS, DEVICE_LIMITS, formatDuration } from '$lib/kit/types';
+  import { pitchedDuration } from '$lib/kit/pitch';
   import type { SlotMeta, DeviceMode } from '$lib/kit/types';
 
   export let slots: (SlotMeta | null)[];
@@ -9,7 +10,7 @@
   const dispatch = createEventDispatcher<{ preview: { index: number } }>();
 
   $: maxSeconds = DEVICE_LIMITS[deviceMode];
-  $: usedSeconds = slots.reduce((sum, s) => sum + (s ? s.trimEnd - s.trimStart : 0), 0);
+  $: usedSeconds = slots.reduce((sum, s) => sum + (s ? pitchedDuration(s) : 0), 0);
 
   $: barClass = usedSeconds > maxSeconds ? 'over' : usedSeconds > maxSeconds * 0.8 ? 'warn' : '';
 </script>
@@ -18,11 +19,12 @@
   <div class="segment-bar">
     {#each slots as slot, i}
       {#if slot}
-        {@const pct = ((slot.trimEnd - slot.trimStart) / maxSeconds) * 100}
+        {@const dur = pitchedDuration(slot)}
+        {@const pct = (dur / maxSeconds) * 100}
         <div
           class="segment"
           style="width:{pct}%;background:{SLOT_COLORS[i]}"
-          title="Slot {i + 1}: {slot.name} ({formatDuration(slot.trimEnd - slot.trimStart)})"
+          title="Slot {i + 1}: {slot.name} ({formatDuration(dur)})"
           role="button"
           tabindex="0"
           on:click={() => dispatch('preview', { index: i })}

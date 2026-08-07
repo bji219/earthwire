@@ -137,6 +137,7 @@ src/
       audio-processor.ts      # extractPeaks, extractPeaksRange, trimBuffer, normalizeBuffer, stitchBuffers
       aiff-encoder.ts         # Encodes Float32Array → valid AIFF binary
       aiff-parser.ts          # Reads AIFF/AIFC chunks back out
+      pitch.ts                # pitchRate, pitchedDuration, resampleBuffer (baked, not metadata)
       op1-metadata.ts         # Builds OP-1 APPL chunk JSON for drum kit slot timings
       op1-metadata-parse.ts   # Parses an APPL chunk back into slot timings
       op1-import.ts           # Imports an existing OP-1 kit into the editor
@@ -205,6 +206,30 @@ Device modes:
 - `op1field`: stereo, 24-bit, 20s max
 
 Format details that matter: AIFC `sowt` 16-bit, FVER chunk, 64-byte COMM, 4100-byte APPL (4096-byte JSON + newline), `0x7FFFFFFE` fixed-point positions, and all 24 slots must satisfy `start < end` (empty slots get 1-frame silence regions).
+
+### Per-slot pitch — baked into the audio, NOT metadata
+
+Each `SlotMeta` has `pitchSemitones` (−24…+24, default 0). On export the trimmed buffer is resampled
+by `2^(semitones/12)` via `resampleBuffer()` in [src/lib/kit/pitch.ts](src/lib/kit/pitch.ts), and the
+APPL `pitch` array stays `Array(24).fill(0)`.
+
+**Do not "fix" that by writing into the metadata array.** The encoding could not be pinned down:
+DigiChain's OP-1 → OP-XY converter reads `Math.round((value / 512) / 12)`, which is either 512 or
+6144 units per semitone depending on whether OP-XY's `transpose` is semitones or octaves, and no
+consulted source settles it. Guessing wrong is a factor-of-twelve error discoverable only on
+hardware. Baking removes the question, works identically on OP-1/Field/OP-Z, and leaves the device's
+own pitch knob free as a live layer. Reverse stays metadata because `REVERSE_CODES` *is* verified.
+
+Resampling uses `OfflineAudioContext`, deliberately, because preview uses `playbackRate` on a live
+source node — same engine, so what you audition is what exports. Hand-rolled interpolation would
+alias on pitch-up and break that. `resampleBuffer` therefore cannot be unit-tested (jsdom has no Web
+Audio); the Playwright pass parses the exported COMM chunk and asserts the frame count instead.
+
+**Pitch consumes device budget.** `trimEnd - trimStart` is the *source* span; the exported length is
+`pitchedDuration()`. Every duration site uses that helper — `KitBuilder.usedSeconds` and its export
+clamp, `SegmentBar`, `SlotRow`. Pitching down lengthens a slot and can overflow the 12s/20s budget,
+which the existing tail-clip handles. The clamp converts between output and source seconds via the
+rate, reducing to the original arithmetic at rate 1.
 
 ### Per-slot playback mode
 

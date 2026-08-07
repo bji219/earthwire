@@ -37,6 +37,7 @@ export interface SlotMeta {
   fullDuration: number; // original full length in seconds
   color: string;        // assigned palette color
   playMode: SlotPlayMode;
+  pitchSemitones: number; // baked into the audio at export, not device metadata
 }
 
 export interface KitMeta {

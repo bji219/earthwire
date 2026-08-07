@@ -105,6 +105,7 @@ function createAudioPlayer() {
     trimStart = 0,
     trimEnd?: number,
     reverse = false,
+    rate = 1,
   ) {
     stop();
     store.set({ playingKey: null, loadingKey: key });
@@ -116,6 +117,9 @@ function createAudioPlayer() {
       const buffer = await getBuffer(audioCtx);
       if (get(store).loadingKey !== key) return; // cancelled by stop() or new play()
       const src = audioCtx.createBufferSource();
+      // Matches the OfflineAudioContext resampling used at export, so a preview
+      // sounds exactly like the audio that lands on the device.
+      src.playbackRate.value = rate;
       if (reverse) {
         src.buffer = reverseTrimmedRegion(buffer, trimStart, trimEnd);
         src.connect(audioCtx.destination);

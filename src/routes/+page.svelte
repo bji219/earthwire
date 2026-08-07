@@ -4,6 +4,7 @@
   import LandingHero   from '$lib/components/LandingHero.svelte';
   import { kit } from '$lib/stores/kit';
   import { SLOT_COLORS, PLAY_MODE_DEFAULT } from '$lib/kit/types';
+  import { PITCH_DEFAULT } from '$lib/kit/pitch';
   import type { SlotMeta } from '$lib/kit/types';
   import { onMount } from 'svelte';
   import { browser } from '$app/environment';
@@ -43,6 +44,7 @@
       fullDuration: buffer.duration,
       color: SLOT_COLORS[index],
       playMode: PLAY_MODE_DEFAULT,
+      pitchSemitones: PITCH_DEFAULT,
     };
     kit.setSlot(index, meta, buffer);
   }

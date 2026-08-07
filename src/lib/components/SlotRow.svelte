@@ -9,6 +9,7 @@
     SLOT_COLORS, SLOT_NOTES, formatDuration,
     PLAY_MODE_ICON, PLAY_MODE_LABEL,
   } from '$lib/kit/types';
+  import { pitchedDuration, PITCH_MIN, PITCH_MAX } from '$lib/kit/pitch';
   import { dragPayload } from '$lib/stores/drag';
   import { isUnlocked, openUnlock } from '$lib/stores/license';
   import type { SlotMeta } from '$lib/kit/types';
@@ -26,6 +27,7 @@
     trim: { trimStart: number; trimEnd: number };
     preview: void;
     cyclemode: void;
+    pitch: { delta: number };
     fill: { index: number; name: string; sourceType: 'local' | 'freesound' | 'xeno-canto'; remoteSrc?: string; buffer: AudioBuffer };
     reorder: { fromIndex: number; toIndex: number };
   }>();
@@ -40,7 +42,9 @@
   $: svgPath = peaksToSvgPath(peaks, MINI_W, MINI_H);
   $: color = SLOT_COLORS[index];
   $: note  = SLOT_NOTES[index];
-  $: trimDuration = slot ? slot.trimEnd - slot.trimStart : 0;
+  $: trimDuration = slot ? pitchedDuration(slot) : 0;
+  $: pitchValue = slot?.pitchSemitones ?? 0;
+  $: pitchLabel = pitchValue > 0 ? `+${pitchValue}` : `${pitchValue}`;
 
   let isDragOver = false;
   let editing = false;
@@ -136,6 +140,27 @@
         title="Playback: {PLAY_MODE_LABEL[slot.playMode]} (click to cycle)"
         aria-label="Playback mode: {PLAY_MODE_LABEL[slot.playMode]}"
       >{PLAY_MODE_ICON[slot.playMode]}</button>
+
+      <span class="pitch" class:set={pitchValue !== 0}>
+        <button
+          class="pitch-btn"
+          disabled={pitchValue <= PITCH_MIN}
+          on:click|stopPropagation={() => dispatch('pitch', { delta: -1 })}
+          title="Pitch down a semitone"
+          aria-label="Pitch down a semitone"
+        >−</button>
+        <span
+          class="pitch-val"
+          title="Pitch: {pitchLabel} semitones (baked into the export)"
+        >{pitchLabel}</span>
+        <button
+          class="pitch-btn"
+          disabled={pitchValue >= PITCH_MAX}
+          on:click|stopPropagation={() => dispatch('pitch', { delta: 1 })}
+          title="Pitch up a semitone"
+          aria-label="Pitch up a semitone"
+        >+</button>
+      </span>
     {/if}
 
     <span class="slot-dur">
@@ -244,6 +269,30 @@
   .slot-row.active .mode-btn.active { color: #4a7c59; }
   .mode-btn.mode-reverse { color: var(--accent, #4a7c59); }
 
+  /* Hidden until hover while unpitched, like the trim and mode buttons, so 24
+     untouched rows stay calm. A pitched slot always advertises itself. */
+  .pitch {
+    display: flex; align-items: center; gap: 0.05rem; flex-shrink: 0;
+    opacity: 0;
+  }
+  .slot-row:hover .pitch { opacity: 1; }
+  .pitch.set { opacity: 1; }
+  .pitch-btn {
+    font-size: 0.7rem; color: var(--text-muted); background: none;
+    border: none; cursor: pointer; padding: 0 0.15rem; line-height: 1;
+  }
+  .pitch-btn:hover:not(:disabled) { color: var(--text-primary); }
+  .pitch-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+  .pitch-val {
+    font-family: var(--font-mono, monospace);
+    font-size: 0.6rem; color: var(--text-muted);
+    min-width: 1.5rem; text-align: center; line-height: 1;
+  }
+  .pitch.set .pitch-val { color: var(--accent, #4a7c59); font-weight: 600; }
+  .slot-row.active .pitch-btn,
+  .slot-row.active .pitch-val { color: #999; }
+  .slot-row.active .pitch.set .pitch-val { color: #4a7c59; }
+
   .slot-dur {
     font-size: 0.68rem; color: var(--text-muted);
     width: 3rem; text-align: right; padding-right: 0.5rem;
@@ -306,5 +355,16 @@
       align-items: center;
       justify-content: center;
     }
+    /* No hover on touch, so the stepper is always visible and tap-sized. */
+    .pitch { opacity: 1; }
+    .pitch-btn {
+      font-size: 0.95rem;
+      min-width: 30px;
+      min-height: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .pitch-val { font-size: 0.72rem; min-width: 1.8rem; }
   }
 </style>

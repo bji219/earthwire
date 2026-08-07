@@ -14,6 +14,7 @@
   import { importOp1Kit } from '$lib/kit/op1-import';
   import { canExport, exportsRemaining, isUnlocked, openUnlock, recordExport } from '$lib/stores/license';
   import { selectedSoundCount } from '$lib/stores/my-sounds';
+  import { pitchRate, pitchedDuration, resampleBuffer, PITCH_DEFAULT } from '$lib/kit/pitch';
 
   const deviceModes: [DeviceMode, string, string][] = [
     ['op1', 'OP–1 / OP–Z', 'mono · 12s'],
@@ -62,7 +63,7 @@
 
   $: maxSeconds = DEVICE_LIMITS[$kit.deviceMode];
   $: usedSeconds = $kit.slots.reduce(
-    (s, sl) => s + (sl ? sl.trimEnd - sl.trimStart : 0), 0
+    (s, sl) => s + (sl ? pitchedDuration(sl) : 0), 0
   );
   $: overBudget = usedSeconds > maxSeconds;
 
@@ -118,6 +119,7 @@
       fullDuration: buffer.duration,
       color: SLOT_COLORS[index],
       playMode: PLAY_MODE_DEFAULT,
+      pitchSemitones: PITCH_DEFAULT,
     }, buffer);
   }
 
@@ -135,6 +137,7 @@
       slot.trimStart,
       slot.trimEnd,
       slot.playMode === 'revoneshot' || slot.playMode === 'revgate',
+      pitchRate(slot.pitchSemitones ?? 0),
     );
   }
 
@@ -155,13 +158,17 @@
       // silence region without pushing the scaled positions past OP1_MAX.
       const emptyCount = $kit.slots.filter(s => !s).length;
       let remaining = maxSeconds - emptyCount / sampleRate;
+      // The budget is spent in output seconds, but trim ends are source
+      // seconds, so pitch converts between them. At rate 1 this is the
+      // original arithmetic unchanged.
       const effectiveTrimEnds = $kit.slots.map(slot => {
         if (!slot) return null;
-        const dur = slot.trimEnd - slot.trimStart;
+        const rate = pitchRate(slot.pitchSemitones ?? PITCH_DEFAULT);
+        const outputDur = (slot.trimEnd - slot.trimStart) / rate;
         if (remaining <= 0) return slot.trimStart; // zero-length
-        const allowed = Math.min(dur, remaining);
-        remaining -= allowed;
-        return slot.trimStart + allowed;
+        const allowedOutput = Math.min(outputDur, remaining);
+        remaining -= allowedOutput;
+        return slot.trimStart + allowedOutput * rate;
       });
 
       // Trim each slot's buffer sequentially so we can track progress.
@@ -178,8 +185,13 @@
         const effectiveEnd = effectiveTrimEnds[i] ?? slot.trimEnd;
         if (effectiveEnd <= slot.trimStart) { trimmedBuffers.push(null); continue; }
         const trimmed = trimBuffer(buf, slot.trimStart, effectiveEnd, numChannels, sampleRate);
-        normalizeBuffer(trimmed);
-        trimmedBuffers.push(trimmed);
+        // Pitch is baked into the audio rather than written to the OP-1 APPL
+        // `pitch` array, so the device needs no interpretation. Same resampler
+        // the preview uses, so the export matches what was auditioned.
+        const rate = pitchRate(slot.pitchSemitones ?? PITCH_DEFAULT);
+        const pitched = rate === 1 ? trimmed : await resampleBuffer(trimmed, rate);
+        normalizeBuffer(pitched);
+        trimmedBuffers.push(pitched);
         exportProgress = ++done / filledCount * 0.8;
         await new Promise(r => setTimeout(r, 0)); // yield to browser for repaint
       }
@@ -353,6 +365,7 @@
         on:clear={() => kit.clearSlot(i)}
         on:trim={e => kit.updateSlotTrim(i, e.detail.trimStart, e.detail.trimEnd)}
         on:cyclemode={() => kit.cyclePlayMode(i)}
+        on:pitch={e => kit.adjustSlotPitch(i, e.detail.delta)}
         on:preview={() => previewSlot(i)}
         on:fill={handleFill}
         on:reorder={handleReorder}
