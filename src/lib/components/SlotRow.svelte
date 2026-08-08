@@ -46,17 +46,16 @@
   $: color = SLOT_COLORS[index];
   $: note  = SLOT_NOTES[index];
   $: trimDuration = slot ? pitchedDuration(slot) : 0;
+  const signed = (v: number) => (v >= 0 ? `+${v}` : `${v}`);
+
   $: pitchValue = slot?.pitchSemitones ?? 0;
-  $: pitchLabel = pitchValue > 0 ? `+${pitchValue}` : `${pitchValue}`;
+  $: pitchLabel = signed(pitchValue);
   $: gainValue = slot?.gainDb ?? 0;
-  $: gainLabel = gainValue > 0 ? `+${gainValue}` : `${gainValue}`;
+  $: gainLabel = signed(gainValue);
   $: isModified = pitchValue !== 0 || gainValue !== 0;
-  // Named when untouched so the control announces itself, then its own values,
-  // which is also how gain surfaces from behind a label that reads as pitch.
-  $: tuneSummary = isModified
-    ? [pitchValue !== 0 ? `${pitchLabel}st` : '', gainValue !== 0 ? `${gainLabel}dB` : '']
-        .filter(Boolean).join(' ')
-    : 'tune';
+  // Always both values, including at their defaults. Showing them conditionally
+  // resized the button and shifted the whole row as you edited.
+  $: tuneSummary = `${pitchLabel}st ${gainLabel}dB`;
 
   let showTune = false;
   // Collapse when the sample goes away, so the strip can't outlive its slot.
@@ -183,6 +182,14 @@
 
   {#if showTune && slot}
     <div class="tune-strip">
+      {#if isModified}
+        <button
+          class="tune-reset"
+          on:click|stopPropagation={() => dispatch('resettune')}
+          title="Back to unpitched and unity gain"
+        >reset</button>
+      {/if}
+
       <span class="tune-label">pitch</span>
       <span class="tune-stepper">
         <button
@@ -218,14 +225,6 @@
         >+</button>
       </span>
       <span class="tune-unit">dB</span>
-
-      {#if isModified}
-        <button
-          class="tune-reset"
-          on:click|stopPropagation={() => dispatch('resettune')}
-          title="Back to unpitched and unity gain"
-        >reset</button>
-      {/if}
     </div>
   {/if}
 
@@ -333,7 +332,12 @@
     line-height: 1; white-space: nowrap;
   }
   .tune-btn:hover { border-color: var(--border, #DDD8CF); color: var(--text-primary); }
-  .tune-text { font-family: var(--font-mono, monospace); }
+  /* Fixed width sized for the widest possible pair (-24st -24dB). Mono keeps ch
+     honest, so the row never reflows as values change. */
+  .tune-text {
+    font-family: var(--font-mono, monospace);
+    min-width: 12ch; text-align: right;
+  }
   .tune-caret { font-size: 0.55rem; line-height: 1; }
   .tune-btn.open,
   .tune-btn.set { color: var(--accent, #4a7c59); font-weight: 600; }
@@ -342,8 +346,10 @@
   .slot-row.active .tune-btn.open,
   .slot-row.active .tune-btn.set { color: #4a7c59; }
 
+  /* Right-aligned so the steppers land under the tune button you just clicked,
+     instead of all the way across the row. */
   .tune-strip {
-    display: flex; align-items: center; gap: 0.35rem;
+    display: flex; align-items: center; justify-content: flex-end; gap: 0.35rem;
     padding: 0.4rem 1rem 0.5rem 2.6rem;
     background: var(--bg-secondary, #F0EDE6);
     border-bottom: 1px solid var(--border-light, #eee);
@@ -369,7 +375,7 @@
   .tune-val.set { color: var(--accent, #4a7c59); font-weight: 600; }
   .tune-unit { font-size: 0.58rem; opacity: 0.8; }
   .tune-reset {
-    margin-left: auto; font-size: 0.58rem; background: none;
+    margin-right: auto; font-size: 0.58rem; background: none;
     border: 1px solid var(--border, #DDD8CF); border-radius: 3px;
     color: var(--text-muted); cursor: pointer; padding: 0.1rem 0.4rem;
     font-family: var(--font-body);
@@ -445,7 +451,7 @@
       min-height: 36px;
       border-color: var(--border, #DDD8CF);
     }
-    .tune-strip { font-size: 0.75rem; padding-left: 1rem; flex-wrap: wrap; }
+    .tune-strip { font-size: 0.75rem; padding-left: 1rem; flex-wrap: wrap; justify-content: flex-start; }
     .tune-step {
       font-size: 1rem;
       min-width: 32px;
