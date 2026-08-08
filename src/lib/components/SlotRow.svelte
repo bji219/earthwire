@@ -30,7 +30,7 @@
     cyclemode: void;
     pitch: { delta: number };
     gain: { delta: number };
-    resetfx: void;
+    resettune: void;
     fill: { index: number; name: string; sourceType: 'local' | 'freesound' | 'xeno-canto'; remoteSrc?: string; buffer: AudioBuffer };
     reorder: { fromIndex: number; toIndex: number };
   }>();
@@ -51,10 +51,16 @@
   $: gainValue = slot?.gainDb ?? 0;
   $: gainLabel = gainValue > 0 ? `+${gainValue}` : `${gainValue}`;
   $: isModified = pitchValue !== 0 || gainValue !== 0;
+  // Named when untouched so the control announces itself, then its own values,
+  // which is also how gain surfaces from behind a label that reads as pitch.
+  $: tuneSummary = isModified
+    ? [pitchValue !== 0 ? `${pitchLabel}st` : '', gainValue !== 0 ? `${gainLabel}dB` : '']
+        .filter(Boolean).join(' ')
+    : 'tune';
 
-  let showFx = false;
+  let showTune = false;
   // Collapse when the sample goes away, so the strip can't outlive its slot.
-  $: if (!slot && showFx) showFx = false;
+  $: if (!slot && showTune) showTune = false;
 
   let isDragOver = false;
   let editing = false;
@@ -152,14 +158,14 @@
       >{PLAY_MODE_ICON[slot.playMode]}</button>
 
       <button
-        class="fx-btn"
-        class:open={showFx}
+        class="tune-btn"
+        class:open={showTune}
         class:set={isModified}
-        on:click|stopPropagation={() => showFx = !showFx}
-        title={isModified ? `Pitch ${pitchLabel}, gain ${gainLabel}` : 'Pitch and gain'}
+        on:click|stopPropagation={() => showTune = !showTune}
+        title={isModified ? `Pitch ${pitchLabel} st, gain ${gainLabel} dB` : 'Pitch and gain'}
         aria-label="Pitch and gain settings"
-        aria-expanded={showFx}
-      >▾</button>
+        aria-expanded={showTune}
+      ><span class="tune-text">{tuneSummary}</span><span class="tune-caret">▾</span></button>
     {/if}
 
     <span class="slot-dur">
@@ -175,48 +181,48 @@
     {/if}
   </div>
 
-  {#if showFx && slot}
-    <div class="fx-strip">
-      <span class="fx-label">pitch</span>
-      <span class="fx-stepper">
+  {#if showTune && slot}
+    <div class="tune-strip">
+      <span class="tune-label">pitch</span>
+      <span class="tune-stepper">
         <button
-          class="fx-step"
+          class="tune-step"
           disabled={pitchValue <= PITCH_MIN}
           on:click|stopPropagation={() => dispatch('pitch', { delta: -1 })}
           aria-label="Pitch down a semitone"
         >−</button>
-        <span class="fx-val" class:set={pitchValue !== 0}>{pitchLabel}</span>
+        <span class="tune-val" class:set={pitchValue !== 0}>{pitchLabel}</span>
         <button
-          class="fx-step"
+          class="tune-step"
           disabled={pitchValue >= PITCH_MAX}
           on:click|stopPropagation={() => dispatch('pitch', { delta: 1 })}
           aria-label="Pitch up a semitone"
         >+</button>
       </span>
-      <span class="fx-unit">semitones</span>
+      <span class="tune-unit">semitones</span>
 
-      <span class="fx-label fx-label-2">gain</span>
-      <span class="fx-stepper">
+      <span class="tune-label tune-label-2">gain</span>
+      <span class="tune-stepper">
         <button
-          class="fx-step"
+          class="tune-step"
           disabled={gainValue <= GAIN_MIN_DB}
           on:click|stopPropagation={() => dispatch('gain', { delta: -1 })}
           aria-label="Gain down one decibel"
         >−</button>
-        <span class="fx-val" class:set={gainValue !== 0}>{gainLabel}</span>
+        <span class="tune-val" class:set={gainValue !== 0}>{gainLabel}</span>
         <button
-          class="fx-step"
+          class="tune-step"
           disabled={gainValue >= GAIN_MAX_DB}
           on:click|stopPropagation={() => dispatch('gain', { delta: 1 })}
           aria-label="Gain up one decibel"
         >+</button>
       </span>
-      <span class="fx-unit">dB</span>
+      <span class="tune-unit">dB</span>
 
       {#if isModified}
         <button
-          class="fx-reset"
-          on:click|stopPropagation={() => dispatch('resetfx')}
+          class="tune-reset"
+          on:click|stopPropagation={() => dispatch('resettune')}
           title="Back to unpitched and unity gain"
         >reset</button>
       {/if}
@@ -316,54 +322,59 @@
   .slot-row.active .mode-btn.active { color: #4a7c59; }
   .mode-btn.mode-reverse { color: var(--accent, #4a7c59); }
 
-  /* Hidden until hover while at defaults, like the trim and mode buttons, so 24
-     untouched rows stay calm. A modified slot always advertises itself. */
-  .fx-btn {
-    font-size: 0.62rem; color: var(--text-muted); background: none;
-    border: none; cursor: pointer; padding: 0 0.35rem; flex-shrink: 0;
-    line-height: 1; opacity: 0;
+  /* Always visible, unlike the trim and mode glyphs. Those are recognisable
+     icons; this one needs its label to be findable at all. */
+  .tune-btn {
+    display: inline-flex; align-items: center; gap: 0.15rem;
+    font-family: var(--font-body); font-size: 0.58rem;
+    color: var(--text-muted); background: none;
+    border: 1px solid transparent; border-radius: 3px;
+    cursor: pointer; padding: 0.1rem 0.3rem; flex-shrink: 0;
+    line-height: 1; white-space: nowrap;
   }
-  .slot-row:hover .fx-btn { opacity: 1; }
-  .fx-btn.open,
-  .fx-btn.set { opacity: 1; color: var(--accent, #4a7c59); }
-  .fx-btn.open { transform: rotate(180deg); }
-  .slot-row.active .fx-btn { color: #999; }
-  .slot-row.active .fx-btn.open,
-  .slot-row.active .fx-btn.set { color: #4a7c59; }
+  .tune-btn:hover { border-color: var(--border, #DDD8CF); color: var(--text-primary); }
+  .tune-text { font-family: var(--font-mono, monospace); }
+  .tune-caret { font-size: 0.55rem; line-height: 1; }
+  .tune-btn.open,
+  .tune-btn.set { color: var(--accent, #4a7c59); font-weight: 600; }
+  .tune-btn.open .tune-caret { transform: rotate(180deg); }
+  .slot-row.active .tune-btn { color: #999; }
+  .slot-row.active .tune-btn.open,
+  .slot-row.active .tune-btn.set { color: #4a7c59; }
 
-  .fx-strip {
+  .tune-strip {
     display: flex; align-items: center; gap: 0.35rem;
     padding: 0.4rem 1rem 0.5rem 2.6rem;
     background: var(--bg-secondary, #F0EDE6);
     border-bottom: 1px solid var(--border-light, #eee);
     font-size: 0.62rem; color: var(--text-muted);
   }
-  .fx-label { font-weight: 600; color: var(--text-secondary, #6B6B6B); }
-  .fx-label-2 { margin-left: 0.9rem; }
-  .fx-stepper {
+  .tune-label { font-weight: 600; color: var(--text-secondary, #6B6B6B); }
+  .tune-label-2 { margin-left: 0.9rem; }
+  .tune-stepper {
     display: flex; align-items: center; gap: 0.05rem;
     border: 1px solid var(--border, #DDD8CF); border-radius: 3px;
     background: var(--bg-input, #fff);
   }
-  .fx-step {
+  .tune-step {
     font-size: 0.7rem; color: var(--text-muted); background: none;
     border: none; cursor: pointer; padding: 0.05rem 0.3rem; line-height: 1;
   }
-  .fx-step:hover:not(:disabled) { color: var(--text-primary); }
-  .fx-step:disabled { opacity: 0.3; cursor: not-allowed; }
-  .fx-val {
+  .tune-step:hover:not(:disabled) { color: var(--text-primary); }
+  .tune-step:disabled { opacity: 0.3; cursor: not-allowed; }
+  .tune-val {
     font-family: var(--font-mono, monospace); font-size: 0.6rem;
     min-width: 1.7rem; text-align: center; color: var(--text-muted);
   }
-  .fx-val.set { color: var(--accent, #4a7c59); font-weight: 600; }
-  .fx-unit { font-size: 0.58rem; opacity: 0.8; }
-  .fx-reset {
+  .tune-val.set { color: var(--accent, #4a7c59); font-weight: 600; }
+  .tune-unit { font-size: 0.58rem; opacity: 0.8; }
+  .tune-reset {
     margin-left: auto; font-size: 0.58rem; background: none;
     border: 1px solid var(--border, #DDD8CF); border-radius: 3px;
     color: var(--text-muted); cursor: pointer; padding: 0.1rem 0.4rem;
     font-family: var(--font-body);
   }
-  .fx-reset:hover { color: var(--text-primary); border-color: var(--text-muted); }
+  .tune-reset:hover { color: var(--text-primary); border-color: var(--text-muted); }
 
   .slot-dur {
     font-size: 0.68rem; color: var(--text-muted);
@@ -428,18 +439,14 @@
       justify-content: center;
     }
     /* No hover on touch, so the toggle is always visible and tap-sized. */
-    .fx-btn {
-      opacity: 1;
-      font-size: 0.9rem;
-      padding: 0.5rem 0.6rem;
-      min-width: 32px;
+    .tune-btn {
+      font-size: 0.72rem;
+      padding: 0.4rem 0.5rem;
       min-height: 36px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+      border-color: var(--border, #DDD8CF);
     }
-    .fx-strip { font-size: 0.75rem; padding-left: 1rem; flex-wrap: wrap; }
-    .fx-step {
+    .tune-strip { font-size: 0.75rem; padding-left: 1rem; flex-wrap: wrap; }
+    .tune-step {
       font-size: 1rem;
       min-width: 32px;
       min-height: 36px;
@@ -447,6 +454,6 @@
       align-items: center;
       justify-content: center;
     }
-    .fx-val { font-size: 0.8rem; min-width: 2rem; }
+    .tune-val { font-size: 0.8rem; min-width: 2rem; }
   }
 </style>

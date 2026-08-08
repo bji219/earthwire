@@ -376,7 +376,7 @@
         on:cyclemode={() => kit.cyclePlayMode(i)}
         on:pitch={e => kit.adjustSlotPitch(i, e.detail.delta)}
         on:gain={e => kit.adjustSlotGain(i, e.detail.delta)}
-        on:resetfx={() => { kit.setSlotPitch(i, PITCH_DEFAULT); kit.setSlotGain(i, GAIN_DEFAULT_DB); }}
+        on:resettune={() => { kit.setSlotPitch(i, PITCH_DEFAULT); kit.setSlotGain(i, GAIN_DEFAULT_DB); }}
         on:preview={() => previewSlot(i)}
         on:fill={handleFill}
         on:reorder={handleReorder}
@@ -445,7 +445,7 @@
     <p class="import-notice">{importNotice}</p>
   {/if}
 
-  <p class="hint">arrow keys navigate · click plays · shift-click range-selects · backspace/delete clears · drag to reorder</p>
+  <p class="hint">click plays · tune sets pitch and gain · arrow keys navigate · shift-click range-selects · backspace/delete clears · drag to reorder</p>
 </div>
 
 <style>
