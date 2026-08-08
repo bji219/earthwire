@@ -105,6 +105,8 @@ function createAudioPlayer() {
     trimStart = 0,
     trimEnd?: number,
     reverse = false,
+    rate = 1,
+    gain = 1,
   ) {
     stop();
     store.set({ playingKey: null, loadingKey: key });
@@ -116,13 +118,27 @@ function createAudioPlayer() {
       const buffer = await getBuffer(audioCtx);
       if (get(store).loadingKey !== key) return; // cancelled by stop() or new play()
       const src = audioCtx.createBufferSource();
+      // Matches the OfflineAudioContext resampling used at export, so a preview
+      // sounds exactly like the audio that lands on the device.
+      src.playbackRate.value = rate;
+
+      // Mirrors the export chain: the normalize lift and the slot's gain, so a
+      // preview is level-matched to the file rather than the raw buffer.
+      let sink: AudioNode = audioCtx.destination;
+      if (gain !== 1) {
+        const gainNode = audioCtx.createGain();
+        gainNode.gain.value = gain;
+        gainNode.connect(audioCtx.destination);
+        sink = gainNode;
+      }
+
       if (reverse) {
         src.buffer = reverseTrimmedRegion(buffer, trimStart, trimEnd);
-        src.connect(audioCtx.destination);
+        src.connect(sink);
         src.start(0);
       } else {
         src.buffer = buffer;
-        src.connect(audioCtx.destination);
+        src.connect(sink);
         src.start(0, trimStart, trimEnd !== undefined ? trimEnd - trimStart : undefined);
       }
       currentSrc = src;

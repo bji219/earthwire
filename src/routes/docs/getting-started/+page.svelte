@@ -38,10 +38,44 @@
       <li>In the <strong>Sample Browser</strong> on the left, search <strong>Freesound</strong> for drum and instrument samples, or <strong>Bird Sounds</strong> (Xeno-canto) for field recordings. You can also upload your own files under <strong>My Sounds</strong>.</li>
       <li>Drag a sample onto one of the 24 slots in the <strong>Kit Builder</strong> on the right, or click a sample to preview and then drop it into the next empty slot.</li>
       <li>Click the <strong>✂ trim</strong> icon on a slot to open the waveform editor and set <strong>trimStart</strong>/<strong>trimEnd</strong> for that slot. This is a Pro feature, see below.</li>
+      <li>Click <strong>tune</strong> on a slot to set its <strong>pitch</strong> and <strong>gain</strong>. Both are free and both apply to the audio itself.</li>
       <li>Pick a <strong>device mode</strong>: OP-1 (mono, 12s max) or OP-1 Field (stereo, 20s max).</li>
       <li>Click <strong>Export</strong> to download a ready-to-load <code>.aif</code> drum kit. If any slots come from Freesound, a <code>-credits.txt</code> sidecar is downloaded too.</li>
       <li>Copy the <code>.aif</code> into your OP-1 / OP-1 Field's drum folder and load it like any other kit.</li>
     </ol>
+  </section>
+
+  <section>
+    <h2>Pitch and Gain</h2>
+    <p>
+      Every slot has a <strong>tune</strong> button, sitting just after the playback mode icon. Click
+      it to open pitch and gain for that slot. Once either is set, the button shows the values
+      instead, so you can see at a glance which slots you have changed.
+    </p>
+    <dl class="modes">
+      <dt><span class="mode-icon">st</span>pitch</dt>
+      <dd>
+        Shifts the slot by semitones, up to two octaves either way. Previewing plays the pitched
+        version, including when the slot is reversed, so what you hear is what gets exported.
+      </dd>
+
+      <dt><span class="mode-icon">dB</span>gain</dt>
+      <dd>
+        Sets the level from −24 to +6 dB, which is how you balance a loud kick against a quiet field
+        recording. Earthwire already lifts very quiet samples automatically on export, and gain
+        applies on top of that lift, so 0 dB is the level you hear when previewing. Pushing well past
+        0 on an already loud sample will clip it.
+      </dd>
+    </dl>
+    <p>
+      Both are applied to the audio itself rather than saved as device settings, so they sound
+      identical everywhere and leave the OP-1's own controls free for playing.
+    </p>
+    <p class="note">
+      <strong>Pitching changes how much of your budget a slot uses.</strong> Pitch a two second
+      sample down an octave and it becomes four seconds. Watch the bar above the slots. If a kit runs
+      past 12s or 20s the last slots get clipped to fit, the same as when you add too many samples.
+    </p>
   </section>
 
   <section>

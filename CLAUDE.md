@@ -137,6 +137,8 @@ src/
       audio-processor.ts      # extractPeaks, extractPeaksRange, trimBuffer, normalizeBuffer, stitchBuffers
       aiff-encoder.ts         # Encodes Float32Array → valid AIFF binary
       aiff-parser.ts          # Reads AIFF/AIFC chunks back out
+      pitch.ts                # pitchRate, pitchedDuration, resampleBuffer (baked, not metadata)
+      gain.ts                 # dbToLinear, applyGain (baked, not metadata)
       op1-metadata.ts         # Builds OP-1 APPL chunk JSON for drum kit slot timings
       op1-metadata-parse.ts   # Parses an APPL chunk back into slot timings
       op1-import.ts           # Imports an existing OP-1 kit into the editor
@@ -202,9 +204,60 @@ Three call sites, all thin. The feature code behind each is untouched.
 
 Device modes:
 - `op1`: mono, 16-bit, 12s max
-- `op1field`: stereo, 24-bit, 20s max
+- `op1field`: stereo, 16-bit, 20s max
+
+**Both modes are 16-bit, deliberately — do not "upgrade" the Field to 24-bit.** DigiChain, the most
+widely used OP-1/Field kit exporter, hardcodes `numBytesPerSample = 2` and `setInt16(26, 16)` in its
+`encodeAif`, which takes no bit-depth argument at all, while its WAV path *does* accept one. The
+omission is a decision, not an oversight. The Field's advertised "32-bit audio" describes its
+internal signal chain, not the drum patch format. Writing 24-bit would be an unverifiable experiment
+risking firmware rejection, with nothing to gain on percussive one-shots.
 
 Format details that matter: AIFC `sowt` 16-bit, FVER chunk, 64-byte COMM, 4100-byte APPL (4096-byte JSON + newline), `0x7FFFFFFE` fixed-point positions, and all 24 slots must satisfy `start < end` (empty slots get 1-frame silence regions).
+
+### Per-slot pitch — baked into the audio, NOT metadata
+
+Each `SlotMeta` has `pitchSemitones` (−24…+24, default 0). On export the trimmed buffer is resampled
+by `2^(semitones/12)` via `resampleBuffer()` in [src/lib/kit/pitch.ts](src/lib/kit/pitch.ts), and the
+APPL `pitch` array stays `Array(24).fill(0)`.
+
+**Do not "fix" that by writing into the metadata array.** The encoding could not be pinned down:
+DigiChain's OP-1 → OP-XY converter reads `Math.round((value / 512) / 12)`, which is either 512 or
+6144 units per semitone depending on whether OP-XY's `transpose` is semitones or octaves, and no
+consulted source settles it. Guessing wrong is a factor-of-twelve error discoverable only on
+hardware. Baking removes the question, works identically on OP-1/Field/OP-Z, and leaves the device's
+own pitch knob free as a live layer. Reverse stays metadata because `REVERSE_CODES` *is* verified.
+
+Resampling uses `OfflineAudioContext`, deliberately, because preview uses `playbackRate` on a live
+source node — same engine, so what you audition is what exports. Hand-rolled interpolation would
+alias on pitch-up and break that. `resampleBuffer` therefore cannot be unit-tested (jsdom has no Web
+Audio); the Playwright pass parses the exported COMM chunk and asserts the frame count instead.
+
+**Pitch consumes device budget.** `trimEnd - trimStart` is the *source* span; the exported length is
+`pitchedDuration()`. Every duration site uses that helper — `KitBuilder.usedSeconds` and its export
+clamp, `SegmentBar`, `SlotRow`. Pitching down lengthens a slot and can overflow the 12s/20s budget,
+which the existing tail-clip handles. The clamp converts between output and source seconds via the
+rate, reducing to the original arithmetic at rate 1.
+
+### Per-slot gain — also baked
+
+`SlotMeta.gainDb` (−24…+6, default 0). Applied by `applyGain()` in
+[src/lib/kit/gain.ts](src/lib/kit/gain.ts); the APPL `volume` array stays `Array(24).fill(8192)` for
+the same reason `pitch` stays zeroed.
+
+**Order matters twice, and both are easy to get wrong:**
+
+1. Export runs `trimBuffer -> resampleBuffer -> normalizeBuffer -> applyGain`. Gain must come *after*
+   normalize: normalize lifts anything under 0.5 peak up to 0.9, so gaining first would let it boost
+   a deliberate cut straight back.
+2. Preview must model the lift too. `previewSlot` passes
+   `normalizeFactor(peakInRange(...)) * dbToLinear(gainDb)` into `audioPlayer.play()`. Without it a
+   quiet slot previews quiet, the user compensates with +6, and the export then normalizes *and*
+   applies the boost. `normalizeFactor` and `peakInRange` were split out of `normalizeBuffer`
+   precisely so preview can ask the question without mutating.
+
+`applyGain` does not clamp; `convertSamples` in the encoder already clamps to ±1.0, so a boost
+hard-clips rather than wrapping.
 
 ### Per-slot playback mode
 

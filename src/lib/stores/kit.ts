@@ -5,6 +5,8 @@ import {
   PLAY_MODE_CYCLE, PLAY_MODE_DEFAULT,
   type KitMeta, type SlotMeta, type DeviceMode, type SlotPlayMode,
 } from '$lib/kit/types';
+import { clampPitch, PITCH_DEFAULT } from '$lib/kit/pitch';
+import { clampGainDb, GAIN_DEFAULT_DB } from '$lib/kit/gain';
 
 const STORAGE_KEY = 'earthwire-kit-v1';
 const PCM_DB_NAME = 'earthwire-kit-pcm';
@@ -32,8 +34,16 @@ function loadMeta(): KitMeta {
         if (m === 'reverse') return 'revgate';
         return (m as SlotPlayMode) ?? PLAY_MODE_DEFAULT;
       };
+      // pitchSemitones postdates the original schema, so kits already in a
+      // returning user's localStorage arrive without it. Default here or every
+      // duration calculation downstream yields NaN.
       const slots = rawSlots.map((s: any) =>
-        s ? { ...s, playMode: migrateMode(s.playMode) } as SlotMeta : null
+        s ? {
+          ...s,
+          playMode: migrateMode(s.playMode),
+          pitchSemitones: clampPitch(s.pitchSemitones ?? PITCH_DEFAULT),
+          gainDb: clampGainDb(s.gainDb ?? GAIN_DEFAULT_DB),
+        } as SlotMeta : null
       );
       return { ...DEFAULT_KIT, ...parsed, name, slots };
     }
@@ -206,6 +216,52 @@ function createKitStore() {
           const i = PLAY_MODE_CYCLE.indexOf(existing.playMode);
           const next = PLAY_MODE_CYCLE[(i + 1) % PLAY_MODE_CYCLE.length];
           slots[index] = { ...existing, playMode: next };
+        }
+        return { ...kit, slots };
+      });
+    },
+
+    setSlotPitch(index: number, semitones: number) {
+      applyUpdate(kit => {
+        const slots = [...kit.slots];
+        const existing = slots[index];
+        if (existing) slots[index] = { ...existing, pitchSemitones: clampPitch(semitones) };
+        return { ...kit, slots };
+      });
+    },
+
+    adjustSlotPitch(index: number, delta: number) {
+      applyUpdate(kit => {
+        const slots = [...kit.slots];
+        const existing = slots[index];
+        if (existing) {
+          slots[index] = {
+            ...existing,
+            pitchSemitones: clampPitch((existing.pitchSemitones ?? PITCH_DEFAULT) + delta),
+          };
+        }
+        return { ...kit, slots };
+      });
+    },
+
+    setSlotGain(index: number, db: number) {
+      applyUpdate(kit => {
+        const slots = [...kit.slots];
+        const existing = slots[index];
+        if (existing) slots[index] = { ...existing, gainDb: clampGainDb(db) };
+        return { ...kit, slots };
+      });
+    },
+
+    adjustSlotGain(index: number, delta: number) {
+      applyUpdate(kit => {
+        const slots = [...kit.slots];
+        const existing = slots[index];
+        if (existing) {
+          slots[index] = {
+            ...existing,
+            gainDb: clampGainDb((existing.gainDb ?? GAIN_DEFAULT_DB) + delta),
+          };
         }
         return { ...kit, slots };
       });

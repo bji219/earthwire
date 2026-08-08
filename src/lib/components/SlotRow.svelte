@@ -9,6 +9,8 @@
     SLOT_COLORS, SLOT_NOTES, formatDuration,
     PLAY_MODE_ICON, PLAY_MODE_LABEL,
   } from '$lib/kit/types';
+  import { pitchedDuration, PITCH_MIN, PITCH_MAX } from '$lib/kit/pitch';
+  import { GAIN_MIN_DB, GAIN_MAX_DB } from '$lib/kit/gain';
   import { dragPayload } from '$lib/stores/drag';
   import { isUnlocked, openUnlock } from '$lib/stores/license';
   import type { SlotMeta } from '$lib/kit/types';
@@ -26,6 +28,9 @@
     trim: { trimStart: number; trimEnd: number };
     preview: void;
     cyclemode: void;
+    pitch: { delta: number };
+    gain: { delta: number };
+    resettune: void;
     fill: { index: number; name: string; sourceType: 'local' | 'freesound' | 'xeno-canto'; remoteSrc?: string; buffer: AudioBuffer };
     reorder: { fromIndex: number; toIndex: number };
   }>();
@@ -40,7 +45,21 @@
   $: svgPath = peaksToSvgPath(peaks, MINI_W, MINI_H);
   $: color = SLOT_COLORS[index];
   $: note  = SLOT_NOTES[index];
-  $: trimDuration = slot ? slot.trimEnd - slot.trimStart : 0;
+  $: trimDuration = slot ? pitchedDuration(slot) : 0;
+  const signed = (v: number) => (v >= 0 ? `+${v}` : `${v}`);
+
+  $: pitchValue = slot?.pitchSemitones ?? 0;
+  $: pitchLabel = signed(pitchValue);
+  $: gainValue = slot?.gainDb ?? 0;
+  $: gainLabel = signed(gainValue);
+  $: isModified = pitchValue !== 0 || gainValue !== 0;
+  // Always both values, including at their defaults. Showing them conditionally
+  // resized the button and shifted the whole row as you edited.
+  $: tuneSummary = `${pitchLabel}st ${gainLabel}dB`;
+
+  let showTune = false;
+  // Collapse when the sample goes away, so the strip can't outlive its slot.
+  $: if (!slot && showTune) showTune = false;
 
   let isDragOver = false;
   let editing = false;
@@ -136,6 +155,16 @@
         title="Playback: {PLAY_MODE_LABEL[slot.playMode]} (click to cycle)"
         aria-label="Playback mode: {PLAY_MODE_LABEL[slot.playMode]}"
       >{PLAY_MODE_ICON[slot.playMode]}</button>
+
+      <button
+        class="tune-btn"
+        class:open={showTune}
+        class:set={isModified}
+        on:click|stopPropagation={() => showTune = !showTune}
+        title={isModified ? `Pitch ${pitchLabel} st, gain ${gainLabel} dB` : 'Pitch and gain'}
+        aria-label="Pitch and gain settings"
+        aria-expanded={showTune}
+      ><span class="tune-text">{tuneSummary}</span><span class="tune-caret">▾</span></button>
     {/if}
 
     <span class="slot-dur">
@@ -150,6 +179,54 @@
       >✕</button>
     {/if}
   </div>
+
+  {#if showTune && slot}
+    <div class="tune-strip">
+      {#if isModified}
+        <button
+          class="tune-reset"
+          on:click|stopPropagation={() => dispatch('resettune')}
+          title="Back to unpitched and unity gain"
+        >reset</button>
+      {/if}
+
+      <span class="tune-label">pitch</span>
+      <span class="tune-stepper">
+        <button
+          class="tune-step"
+          disabled={pitchValue <= PITCH_MIN}
+          on:click|stopPropagation={() => dispatch('pitch', { delta: -1 })}
+          aria-label="Pitch down a semitone"
+        >−</button>
+        <span class="tune-val" class:set={pitchValue !== 0}>{pitchLabel}</span>
+        <button
+          class="tune-step"
+          disabled={pitchValue >= PITCH_MAX}
+          on:click|stopPropagation={() => dispatch('pitch', { delta: 1 })}
+          aria-label="Pitch up a semitone"
+        >+</button>
+      </span>
+      <span class="tune-unit">semitones</span>
+
+      <span class="tune-label tune-label-2">gain</span>
+      <span class="tune-stepper">
+        <button
+          class="tune-step"
+          disabled={gainValue <= GAIN_MIN_DB}
+          on:click|stopPropagation={() => dispatch('gain', { delta: -1 })}
+          aria-label="Gain down one decibel"
+        >−</button>
+        <span class="tune-val" class:set={gainValue !== 0}>{gainLabel}</span>
+        <button
+          class="tune-step"
+          disabled={gainValue >= GAIN_MAX_DB}
+          on:click|stopPropagation={() => dispatch('gain', { delta: 1 })}
+          aria-label="Gain up one decibel"
+        >+</button>
+      </span>
+      <span class="tune-unit">dB</span>
+    </div>
+  {/if}
 
   {#if editing && slot && buffer}
     <div class="variant-bar">
@@ -244,6 +321,67 @@
   .slot-row.active .mode-btn.active { color: #4a7c59; }
   .mode-btn.mode-reverse { color: var(--accent, #4a7c59); }
 
+  /* Always visible, unlike the trim and mode glyphs. Those are recognisable
+     icons; this one needs its label to be findable at all. */
+  .tune-btn {
+    display: inline-flex; align-items: center; gap: 0.15rem;
+    font-family: var(--font-body); font-size: 0.58rem;
+    color: var(--text-muted); background: none;
+    border: 1px solid transparent; border-radius: 3px;
+    cursor: pointer; padding: 0.1rem 0.3rem; flex-shrink: 0;
+    line-height: 1; white-space: nowrap;
+  }
+  .tune-btn:hover { border-color: var(--border, #DDD8CF); color: var(--text-primary); }
+  /* Fixed width sized for the widest possible pair (-24st -24dB). Mono keeps ch
+     honest, so the row never reflows as values change. */
+  .tune-text {
+    font-family: var(--font-mono, monospace);
+    min-width: 12ch; text-align: right;
+  }
+  .tune-caret { font-size: 0.55rem; line-height: 1; }
+  .tune-btn.open,
+  .tune-btn.set { color: var(--accent, #4a7c59); font-weight: 600; }
+  .tune-btn.open .tune-caret { transform: rotate(180deg); }
+  .slot-row.active .tune-btn { color: #999; }
+  .slot-row.active .tune-btn.open,
+  .slot-row.active .tune-btn.set { color: #4a7c59; }
+
+  /* Right-aligned so the steppers land under the tune button you just clicked,
+     instead of all the way across the row. */
+  .tune-strip {
+    display: flex; align-items: center; justify-content: flex-end; gap: 0.35rem;
+    padding: 0.4rem 1rem 0.5rem 2.6rem;
+    background: var(--bg-secondary, #F0EDE6);
+    border-bottom: 1px solid var(--border-light, #eee);
+    font-size: 0.62rem; color: var(--text-muted);
+  }
+  .tune-label { font-weight: 600; color: var(--text-secondary, #6B6B6B); }
+  .tune-label-2 { margin-left: 0.9rem; }
+  .tune-stepper {
+    display: flex; align-items: center; gap: 0.05rem;
+    border: 1px solid var(--border, #DDD8CF); border-radius: 3px;
+    background: var(--bg-input, #fff);
+  }
+  .tune-step {
+    font-size: 0.7rem; color: var(--text-muted); background: none;
+    border: none; cursor: pointer; padding: 0.05rem 0.3rem; line-height: 1;
+  }
+  .tune-step:hover:not(:disabled) { color: var(--text-primary); }
+  .tune-step:disabled { opacity: 0.3; cursor: not-allowed; }
+  .tune-val {
+    font-family: var(--font-mono, monospace); font-size: 0.6rem;
+    min-width: 1.7rem; text-align: center; color: var(--text-muted);
+  }
+  .tune-val.set { color: var(--accent, #4a7c59); font-weight: 600; }
+  .tune-unit { font-size: 0.58rem; opacity: 0.8; }
+  .tune-reset {
+    margin-right: auto; font-size: 0.58rem; background: none;
+    border: 1px solid var(--border, #DDD8CF); border-radius: 3px;
+    color: var(--text-muted); cursor: pointer; padding: 0.1rem 0.4rem;
+    font-family: var(--font-body);
+  }
+  .tune-reset:hover { color: var(--text-primary); border-color: var(--text-muted); }
+
   .slot-dur {
     font-size: 0.68rem; color: var(--text-muted);
     width: 3rem; text-align: right; padding-right: 0.5rem;
@@ -306,5 +444,22 @@
       align-items: center;
       justify-content: center;
     }
+    /* No hover on touch, so the toggle is always visible and tap-sized. */
+    .tune-btn {
+      font-size: 0.72rem;
+      padding: 0.4rem 0.5rem;
+      min-height: 36px;
+      border-color: var(--border, #DDD8CF);
+    }
+    .tune-strip { font-size: 0.75rem; padding-left: 1rem; flex-wrap: wrap; justify-content: flex-start; }
+    .tune-step {
+      font-size: 1rem;
+      min-width: 32px;
+      min-height: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .tune-val { font-size: 0.8rem; min-width: 2rem; }
   }
 </style>
