@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { FREE_EXPORT_LIMIT, FREE_UPLOAD_LIMIT, ETSY_LISTING_URL } from '$lib/license/limits';
+  import { SUPPORT_URL } from '$lib/support';
   import { PLAY_MODE_CYCLE, PLAY_MODE_ICON, PLAY_MODE_LABEL } from '$lib/kit/types';
   import type { SlotPlayMode } from '$lib/kit/types';
 
@@ -37,7 +37,7 @@
       <li>Open the <strong>Kit Designer</strong> (the home page). On your first visit you'll see a landing screen. Click <strong>Build a Kit</strong> to enter.</li>
       <li>In the <strong>Sample Browser</strong> on the left, search <strong>Freesound</strong> for drum and instrument samples, or <strong>Bird Sounds</strong> (Xeno-canto) for field recordings. You can also upload your own files under <strong>My Sounds</strong>.</li>
       <li>Drag a sample onto one of the 24 slots in the <strong>Kit Builder</strong> on the right, or click a sample to preview and then drop it into the next empty slot.</li>
-      <li>Click the <strong>✂ trim</strong> icon on a slot to open the waveform editor and set <strong>trimStart</strong>/<strong>trimEnd</strong> for that slot. This is a Pro feature, see below.</li>
+      <li>Click the <strong>✂ trim</strong> icon on a slot to open the waveform editor and set <strong>trimStart</strong>/<strong>trimEnd</strong> for that slot.</li>
       <li>Click <strong>tune</strong> on a slot to set its <strong>pitch</strong> and <strong>gain</strong>. Both are free and both apply to the audio itself.</li>
       <li>Pick a <strong>device mode</strong>: OP-1 (mono, 12s max) or OP-1 Field (stereo, 20s max).</li>
       <li>Click <strong>Export</strong> to download a ready-to-load <code>.aif</code> drum kit. If any slots come from Freesound, a <code>-credits.txt</code> sidecar is downloaded too.</li>
@@ -93,43 +93,20 @@
   </section>
 
   <section>
-    <h2>Free and Pro</h2>
+    <h2>What it costs</h2>
     <p>
-      Everything you need to try Earthwire is free: unlimited searching across Freesound and Xeno-canto,
-      all 24 slots, both device modes, every playback mode, and one kit export so you can confirm it
-      loads on your actual hardware.
+      Nothing. Every part of Earthwire is free and always will be: unlimited searching across
+      Freesound and Xeno-canto, all 24 slots, both device modes, every playback mode, the waveform
+      trim editor, pitch and gain, and as many kit exports as you like. There is no account, no
+      sign-up, and nothing is stored on a server.
     </p>
-    <dl>
-      <dt>Kit exports</dt>
-      <dd>Free: {FREE_EXPORT_LIMIT === 1 ? 'one export' : `${FREE_EXPORT_LIMIT} exports`}. Pro: unlimited.</dd>
-
-      <dt>Waveform trim editor</dt>
-      <dd>
-        Free: locked. Samples export at full length, and once the kit exceeds your device's budget
-        (12s on OP-1, 20s on OP-1 Field) the last slots get clipped. Pro: full ✂ editor with zoom,
-        so every slot is exactly as long as you want it.
-      </dd>
-
-      <dt>My Sounds uploads</dt>
-      <dd>Free: up to {FREE_UPLOAD_LIMIT} of your own files. Pro: unlimited.</dd>
-    </dl>
-  </section>
-
-  <section>
-    <h2>Unlocking Pro</h2>
-    <ol>
-      <li>Buy the <strong>Earthwire Pro key</strong> on <a href={ETSY_LISTING_URL} target="_blank" rel="noopener">Etsy</a>. It's an instant download, so the PDF with your key arrives as soon as the order goes through.</li>
-      <li>Open the PDF and copy the key. It looks like <code>EW-B01-7KQ4M-9XTPZ-A3F8</code>.</li>
-      <li>Click <strong>Unlock Pro</strong> in the top bar, paste the key, and press <strong>Unlock</strong>.</li>
-      <li>The chip changes to <strong>Pro ✓</strong> and every limit lifts immediately.</li>
-    </ol>
-    <p class="note">
-      Your key is stored in this browser only. Unlocking on another browser, another machine, or after
-      clearing site data just means pasting the same key again, so keep the PDF. Keys don't expire.
-    </p>
-    <p class="tip">
-      Trouble with a key? Message me through Etsy and include your order number.
-    </p>
+    {#if SUPPORT_URL}
+      <p>
+        If it saved you some time and you feel like saying thanks, you can
+        <a href={SUPPORT_URL} target="_blank" rel="noopener">buy me a coffee</a>.
+        Entirely optional, and nothing changes either way.
+      </p>
+    {/if}
   </section>
 </div>
 
@@ -222,14 +199,6 @@
   }
   .modes dd {
     margin-left: 2.2rem;
-  }
-  .tip {
-    color: var(--accent, #1A6B5A);
-    background: var(--accent-bg, #E8F5F0);
-    padding: 0.75rem 1rem;
-    border-radius: 8px;
-    font-size: 0.9rem;
-    margin-top: 1rem;
   }
   .note {
     color: var(--text-muted, #9B9B9B);
