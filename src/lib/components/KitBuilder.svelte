@@ -12,7 +12,7 @@
   import { trimBuffer, stitchBuffers, normalizeBuffer, normalizeFactor, peakInRange, appendSilence } from '$lib/kit/audio-processor';
   import { encodeAiff } from '$lib/kit/aiff-encoder';
   import { importOp1Kit } from '$lib/kit/op1-import';
-  import { canExport, exportsRemaining, isUnlocked, openUnlock, recordExport } from '$lib/stores/license';
+  import { SUPPORT_URL } from '$lib/support';
   import { selectedSoundCount } from '$lib/stores/my-sounds';
   import { pitchRate, pitchedDuration, resampleBuffer, PITCH_DEFAULT } from '$lib/kit/pitch';
   import { applyGain, dbToLinear, GAIN_DEFAULT_DB } from '$lib/kit/gain';
@@ -68,12 +68,13 @@
   );
   $: overBudget = usedSeconds > maxSeconds;
 
-  $: exportsLeft = $exportsRemaining > 0;
-  $: exportTitle = !exportsLeft
-    ? 'Free exports used — unlock Pro for unlimited exports'
-    : overBudget
-      ? `Over ${maxSeconds}s — last sample(s) will be clipped to fit`
-      : '';
+  $: exportTitle = overBudget
+    ? `Over ${maxSeconds}s — last sample(s) will be clipped to fit`
+    : '';
+
+  // Shown only once a kit has actually been exported, so the ask lands after
+  // someone has got what they came for rather than before.
+  let hasExported = false;
 
   function handleKitNameChange(e: Event) {
     kit.setName((e.target as HTMLInputElement).value);
@@ -148,10 +149,6 @@
   }
 
   async function doExport() {
-    if (!canExport()) {
-      openUnlock('export');
-      return;
-    }
     exporting = true;
     exportError = '';
     exportProgress = 0;
@@ -278,9 +275,7 @@
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
-      // Counted here rather than at the end: the kit has left the building, so a
-      // later failure in the credits sidecar must not hand back a free export.
-      recordExport();
+      hasExported = true;
       // Revoke after a delay — Safari downloads blobs asynchronously and gets a 404
       // if the object URL is revoked before the download manager has read all the bytes.
       setTimeout(() => URL.revokeObjectURL(url), 60_000);
@@ -399,25 +394,24 @@
     </button>
     <button
       class="export-btn"
-      class:locked={!exportsLeft}
       disabled={exporting}
       title={exportTitle}
       on:click={doExport}
     >
-      {#if exporting}
-        exporting…
-      {:else if !exportsLeft}
-        🔒 export kit →
-      {:else}
-        export kit →
-      {/if}
+      {exporting ? 'exporting…' : 'export kit →'}
     </button>
   </div>
 
-  {#if !$isUnlocked && exportsLeft}
-    <p class="free-note">
-      {$exportsRemaining} free {$exportsRemaining === 1 ? 'export' : 'exports'} left
-    </p>
+  {#if hasExported && SUPPORT_URL}
+    <a
+      class="coffee-note"
+      href={SUPPORT_URL}
+      target="_blank"
+      rel="noopener noreferrer"
+    >
+      <span class="coffee-icon" aria-hidden="true">☕</span>
+      <span>enjoying Earthwire? <strong>buy me a coffee →</strong></span>
+    </a>
   {/if}
   <input
     type="file"
@@ -530,11 +524,24 @@
     font-size: 0.7rem; color: #c0392b; padding: 0.3rem 1rem;
   }
 
-  .export-btn.locked { color: var(--text-muted); }
-  .free-note {
-    font-size: 0.62rem; color: var(--text-muted); text-align: right;
-    padding: 0 1rem 0.35rem; margin: 0; flex-shrink: 0;
+  /* Reads as its own element rather than fine print, but stays calm enough to
+     ignore. Only ever shown after an export has completed. */
+  .coffee-note {
+    display: flex; align-items: center; gap: 0.45rem;
+    align-self: flex-end; flex-shrink: 0;
+    margin: 0 1rem 0.55rem;
+    padding: 0.4rem 0.7rem;
+    border: 1px solid var(--accent);
+    border-radius: 999px;
+    background: var(--accent-bg);
+    color: var(--accent);
+    font-size: 0.72rem;
+    font-family: var(--font-body);
+    text-decoration: none;
+    transition: background 150ms, color 150ms;
   }
+  .coffee-note:hover { background: var(--accent); color: #fff; }
+  .coffee-icon { font-size: 0.85rem; line-height: 1; }
 
   .bulk-bar {
     display: flex; align-items: center; gap: 0.6rem;

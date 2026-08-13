@@ -6,7 +6,6 @@
   import { extractPeaks, peaksToSvgPath, decodeAudioData } from '$lib/kit/audio-processor';
   import { dragPayload } from '$lib/stores/drag';
   import { audioPlayer } from '$lib/stores/audio-player';
-  import { isUnlocked, openUnlock, uploadLimit } from '$lib/stores/license';
 
   const dispatch = createEventDispatcher<{ add: { sound: LocalSound; buffer: AudioBuffer } }>();
 
@@ -45,15 +44,7 @@
   }
 
   async function addFiles(files: FileList | File[]) {
-    const incoming = Array.from(files);
-    const room = $uploadLimit - sounds.length;
-
-    // Take what fits rather than dropping the whole batch — a user who drags in
-    // 15 files should still get the first 10 stored.
-    const accepted = incoming.slice(0, Math.max(0, room));
-    const rejected = incoming.length - accepted.length;
-
-    for (const file of accepted) {
+    for (const file of Array.from(files)) {
       const arrayBuffer = await file.arrayBuffer();
       const ctx = getDecodeCtx();
       const audioBuffer = await decodeAudioData(arrayBuffer, ctx);
@@ -69,8 +60,6 @@
       waveformPaths = waveformPaths;
       sounds = [...sounds, sound];
     }
-
-    if (rejected > 0) openUnlock('upload');
   }
 
   async function handleDrop(e: DragEvent) {
@@ -184,10 +173,7 @@
 
   {#if sounds.length > 0}
     <div class="section-label">
-      my library · {$isUnlocked ? `${sounds.length} files` : `${sounds.length} / ${$uploadLimit} files`} · shift-click to multi-select
-      {#if !$isUnlocked && sounds.length >= $uploadLimit}
-        · <button class="inline-unlock" on:click={() => openUnlock('upload')}>unlock more</button>
-      {/if}
+      my library · {sounds.length} files · shift-click to multi-select
     </div>
     {#if selectedIds.size > 0}
       <div class="bulk-bar">
@@ -246,11 +232,6 @@
   .section-label {
     font-size: 0.65rem; font-weight: 600; letter-spacing: 0.08em;
     color: var(--text-muted); text-transform: uppercase; padding: 0.5rem 1rem 0.25rem;
-  }
-  .inline-unlock {
-    font: inherit; letter-spacing: inherit; text-transform: inherit;
-    background: none; border: none; padding: 0; cursor: pointer;
-    color: var(--accent); text-decoration: underline;
   }
   .bulk-bar {
     display: flex; align-items: center; gap: 0.6rem;

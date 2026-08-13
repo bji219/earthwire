@@ -29,78 +29,35 @@ Both are pushed to origin. Do not resurrect any of it into `main` without a deli
 
 ## Business Model
 
-Earthwire is free to use with limits, and sells an unlock key ("Earthwire Pro") as an instant-download PDF on Etsy.
+**Free. All of it.** There is no paywall, no account, and no server-side state.
 
-| | Free | Pro |
-|---|---|---|
-| Sample browsing (Freesound, Xeno-canto) | unlimited | unlimited |
-| 24 slots, both device modes, all play modes | yes | yes |
-| Kit exports | `FREE_EXPORT_LIMIT` (currently 1) | unlimited |
-| Waveform trim editor | locked | unlocked |
-| My Sounds uploads | `FREE_UPLOAD_LIMIT` (currently 10) | unlimited |
+Earthwire briefly sold HMAC-signed unlock keys as an instant-download PDF on Etsy, gating exports,
+the trim editor and My Sounds uploads. That was removed before any key sold. The gating was
+client-side and bypassable from devtools in seconds, which was always an accepted trade rather than
+a solved problem, and a tip jar fits a niche tool better than a wall nobody respects.
 
-Every limit is a constant in [src/lib/license/limits.ts](src/lib/license/limits.ts). Tuning the free tier is a one-line change plus a redeploy — do it there, never inline at a call site.
-
-### Why the gating is deliberately lightweight
-
-This repo is public and kit export runs entirely in the browser. **No client-side gate here is unbypassable**, and none is meant to be. The audience is OP-1 owners, not attackers. The server exists for exactly one reason: it holds `LICENSE_SECRET`, so keys cannot be *forged* offline. Someone editing `localStorage` to fake an unlock is an accepted cost, not a bug to escalate against.
-
-Do not add device fingerprinting, obfuscation, or server-side export in the name of "closing the hole." That trade was considered and rejected.
-
----
-
-## License Keys
-
-Key shape: `EW-B01-7KQ4M-9XTPZ-A3F8QW`
-
-- `EW` prefix, then a **batch** (`B` + two chars), a 10-char random payload, and a 6-char HMAC-SHA256 signature over `batch:payload`
-- Alphabet is Crockford base32 (no `I`, `L`, `O`, `U`); `normalizeKey` folds `O→0`, `I/L→1`, `U→V` and ignores dashes and case, because buyers retype these off a PDF
-- Keys carry no expiry and no per-buyer identity — verification is pure signature checking, so there is **no database**
-
-### The Etsy sales loop
-
-Etsy delivers the same file to every buyer, so a key cannot be unique per order. Instead the **Etsy listing quantity is 5**, which caps how many people share one key and gives you a free rotation trigger — Etsy emails you when the listing sells out.
+The paywall is preserved and reachable:
 
 ```bash
-pnpm new-batch         # next batch id, mints the key, writes the PDF, records it
-pnpm new-batch B07     # a specific batch id
-pnpm gen-key B07       # a bare key, for replacements — no PDF, no ledger entry
+git show v1-paywall            # annotated tag at the final state
+git checkout archive/paywall   # full working branch
 ```
 
-Each sellout:
+That branch holds the whole key system: `src/lib/license/` (Crockford base32 + HMAC key format),
+`/api/license/verify`, the licence store, `UnlockDialog`, and the `gen-key` / `new-batch` scripts
+that minted keys and rendered the buyer PDF with pdfkit. Do not resurrect any of it into `main`
+without a deliberate decision.
 
-1. Etsy emails "sold out"
-2. `pnpm new-batch`
-3. Upload the generated `.keys/earthwire-pro-<batch>.pdf` to the listing, replacing the old file
-4. Set quantity back to 5
+### Support link
 
-**No deploy is involved.** The verify route accepts anything `LICENSE_SECRET` signs, for any batch, so a key works the instant it is minted. Keys from old batches keep working forever — retiring a batch just means you stop issuing it.
+[src/lib/support.ts](src/lib/support.ts) exports a single `SUPPORT_URL`. **Every support link is
+rendered behind a truthiness check on it**, so while it is empty the site shows nothing rather than
+shipping a dead link. Filling it in lights up three places at once: the header chip, a line under the
+kit panel after a successful export, and a paragraph in the docs.
 
-`.keys/` holds the ledger and the generated PDFs and is **gitignored on purpose** — this repo is public, and committing it would publish every key ever sold. `pnpm new-batch` picks the next id from the highest one in the ledger and refuses to reuse an existing id, since that would put two live keys under a single revocation unit.
+The post-export line is deliberate placement. It appears only once `hasExported` is true, so the ask
+lands after someone has got what they came for rather than before.
 
-`SITE_URL` from `.env` is printed into the PDF as the address buyers visit. Get it wrong and every customer follows a dead link.
-
-### Revoking
-
-Both lists live in [src/lib/license/sign.ts](src/lib/license/sign.ts) and both require a redeploy:
-
-- `REVOKED_KEYS` — one leaked key. Everyone else in its batch keeps working. **Reach for this first.**
-- `REVOKED_BATCHES` — the whole batch. All 5 buyers need replacement keys via `pnpm gen-key`.
-
-Entries are normalized on comparison, so paste a key in whatever form you have it — dashes, lowercase, or neither.
-
-### Script/library duplication
-
-`scripts/lib/key.mjs` reimplements the base32 + HMAC logic because plain Node cannot import the `$lib` TypeScript. [gen-key.test.ts](src/lib/license/gen-key.test.ts) runs both real scripts and verifies their output against the library — if you change the key format, that test is what stops the two implementations from silently diverging and issuing dead keys. It runs against a temp directory via `EARTHWIRE_KEYS_DIR` so it never touches your real ledger.
-
-### Deferred upgrade path
-
-If unique-per-buyer keys or real activation caps become worth it:
-
-- **Unique keys need a claim step.** The PDF is identical for everyone, so buyers would visit a `/claim` page and trade their Etsy order number for a key from a pool. Etsy's API can verify the receipt properly (`transactions_r` scope), but its refresh tokens expire after 90 days — let the refresh cron lapse and every claim breaks silently while the shop keeps selling.
-- **Activation caps need a writable store.** Capping a key at N devices is a write per unlock; there is nowhere to count today. Upstash Redis via the Vercel Marketplace is the pick — free tier, and unlike Supabase it does not pause. Supabase was rejected because free projects pause after 7 days idle and every project in this account is currently paused.
-
----
 
 ## Tech Stack
 
@@ -121,7 +78,7 @@ Browser-native APIs only: Web Audio for decode/preview, IndexedDB for the local 
 src/
   routes/
     +page.svelte              # Kit Designer — the whole app
-    +layout.svelte            # Site chrome, nav, Pro chip, UnlockDialog mount
+    +layout.svelte            # Site chrome, nav, support link
     samples/+page.ts          # 308 redirect to /
     sequencer/+page.ts        # 308 redirect to / (archived feature)
     docs/getting-started/     # In-app docs
@@ -129,7 +86,6 @@ src/
       xeno-canto/+server.ts        # Xeno-canto v3 search proxy
       xeno-canto/audio/+server.ts  # Audio stream proxy (CORS bypass)
       freesound/+server.ts         # Freesound search proxy
-      license/verify/+server.ts    # HMAC key verification (holds LICENSE_SECRET)
 
   lib/
     kit/
@@ -143,52 +99,32 @@ src/
       op1-metadata-parse.ts   # Parses an APPL chunk back into slot timings
       op1-import.ts           # Imports an existing OP-1 kit into the editor
 
-    license/
-      limits.ts               # FREE_EXPORT_LIMIT, FREE_UPLOAD_LIMIT, ETSY_LISTING_URL, storage keys
-      key-format.ts           # Alphabet, normalizeKey, parseKey, formatKey, bytesToBase32
-      sign.ts                 # signPayload, verifyKey, generateKey, REVOKED_BATCHES
 
     stores/
       kit.ts                  # KitMeta + PCM snapshot map (24 slots; Float32Arrays, not AudioBuffers)
-      license.ts              # Unlock state, export counter, unlock-dialog state
       audio-player.ts         # Preview player (plays slot audio with trim)
       my-sounds.ts            # IndexedDB-backed local file store
       drag.ts                 # Drag-and-drop state
 
+    support.ts              # SUPPORT_URL, empty until the tip page exists
+
     util/logger.ts
 
     components/
-      KitBuilder.svelte        # 24-slot kit panel + export button  [export gate]
-      SlotRow.svelte           # One slot row (✂ trim toggle)       [trim gate]
+      KitBuilder.svelte        # 24-slot kit panel + export button
+      SlotRow.svelte           # One slot row (✂ trim, playmode, tune)
       SegmentBar.svelte        # Duration bar, colored per slot (click to preview)
       WaveformTrimA.svelte     # Canvas waveform trim editor (variant A — stable, imperative draw)
       WaveformTrimB.svelte     # SVG waveform trim editor (variant B — colored trim region)
       WaveformTrim.svelte      # Original trim component (kept for reference)
 
       SampleBrowser.svelte     # Tab container: My Sounds / Freesound / Bird Sounds
-      MySoundsTab.svelte       # Local file upload (IndexedDB)      [upload gate]
+      MySoundsTab.svelte       # Local file upload (IndexedDB)
       FreesoundTab.svelte      # Freesound.org search (category chips + infinite scroll)
       XenocantoTab.svelte      # Xeno-canto bird recordings (family chips, type filter, infinite scroll)
 
-      UnlockDialog.svelte      # Key entry modal, headline varies by which wall was hit
       LandingHero.svelte       # Splash / entry screen (first visit only)
 ```
-
----
-
-## Where the Gates Live
-
-Three call sites, all thin. The feature code behind each is untouched.
-
-| Gate | File | Behavior |
-|---|---|---|
-| Export | `KitBuilder.doExport()` | Bails to `openUnlock('export')` when out of free exports. `recordExport()` fires right after the anchor click, so a later failure in the credits sidecar cannot refund a free export. |
-| Trim | `SlotRow.toggleTrim()` | Shows 🔒 instead of ✂ and opens the dialog. A reactive guard also closes an open editor if Pro is deactivated mid-session. |
-| Upload | `MySoundsTab.addFiles()` | Accepts files up to the cap and opens the dialog for the remainder — a 15-file drop still stores the first 10 rather than dropping the batch. |
-
-`src/lib/stores/license.ts` is the only thing any of them talks to: `isUnlocked`, `exportsRemaining`, `uploadLimit`, `canExport()`, `recordExport()`, `activate()`, `deactivate()`, `openUnlock(reason)`.
-
-`deactivate()` exists so you can test the free tier without clearing site data — call it from the devtools console.
 
 ---
 
@@ -288,15 +224,11 @@ Set in `.env` (see `.env.example`):
 
 ```
 FREESOUND_CLIENT_ID=   # Required for the Freesound tab
-LICENSE_SECRET=        # Required to sign/verify Pro keys
-SITE_URL=              # Printed into the key PDF — buyers follow this
-ETSY_SHOP_URL=         # Used in the PDF's "message me" line
 # XENO_CANTO_KEY=      # Optional — keyless currently works
 ```
 
-`LICENSE_SECRET` is server-only. **Never prefix it `PUBLIC_`** — SvelteKit would ship it to the browser and anyone could mint their own keys. It is read through `$env/dynamic/private` so it can be rotated in Vercel without a rebuild.
-
-**The local and Vercel values must be identical.** Keys are signed locally by `pnpm new-batch` and verified in production by the deployed route; if the two secrets differ, a key that is already printed in a customer's PDF verifies as `invalid` and that buyer is locked out with no self-service fix. For the same reason, **never rotate `LICENSE_SECRET` after a sale** — it invalidates every key ever issued, including ones already sitting in customers' PDFs.
+There are no secrets left. `LICENSE_SECRET`, `SITE_URL` and `ETSY_SHOP_URL` existed only for the
+key PDF and went with the paywall; `LICENSE_SECRET` should also be deleted from the Vercel project.
 
 ---
 
@@ -308,8 +240,6 @@ pnpm build        # Production build
 pnpm check        # svelte-check + tsc
 pnpm test         # Vitest (run all tests)
 pnpm test <file>  # Run a specific test file
-pnpm new-batch    # Mint the next batch: key + ready-to-upload PDF + ledger entry
-pnpm gen-key B02  # Mint a bare Pro key for batch B02 (replacements)
 npx tsc --noEmit  # TypeScript check only
 ```
 
@@ -330,7 +260,7 @@ npx tsc --noEmit  # TypeScript check only
 
 ```bash
 pnpm test                                   # All tests
-pnpm test src/lib/license/sign.test.ts      # One file
+pnpm test src/lib/kit/pitch.test.ts         # One file
 ```
 
 Test count as of last update: 81 tests, all passing (7 test files).
@@ -339,11 +269,8 @@ Test count as of last update: 81 tests, all passing (7 test files).
 - `src/lib/kit/op1-metadata.test.ts` — OP-1 metadata
 - `src/lib/kit/op1-import.test.ts` — importing an existing kit
 - `src/lib/kit/audio-processor.test.ts` — trim/stitch/peak utilities
-- `src/lib/license/key-format.test.ts` — parsing, normalization, confusable folding
-- `src/lib/license/sign.test.ts` — HMAC round-trip, tampering, revocation
-- `src/lib/license/gen-key.test.ts` — the CLI generator agrees with the library
 
-The gates themselves are covered by a Playwright pass rather than unit tests: free-tier walls, dialog copy, key entry, and the unlock transition. Re-run that against a dev server after touching any gate.
+`resampleBuffer` and the export path cannot be unit-tested (jsdom has no Web Audio). A Playwright pass covers them instead, parsing the exported COMM chunk to assert frame counts and peak ratios.
 
 ---
 
@@ -373,5 +300,4 @@ Peak normalization ensures bars always fill the full height regardless of the ab
 ## Known Pending / Future Work
 
 - Kit presets — save and reload a kit layout without re-adding every sample
-- A curated starter-kit bundle to ship alongside the Pro key on Etsy
-- Revisit the free-tier limits once there is real conversion data (see `limits.ts`)
+- A curated starter-kit bundle

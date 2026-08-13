@@ -1,19 +1,15 @@
 <script lang="ts">
   import { createEventDispatcher, onMount } from 'svelte';
-  import { ETSY_LISTING_URL } from '$lib/license/limits';
 
   export let overline: string = 'OP-1 Drum Kit Designer';
   export let tagline: string = 'Build OP-1 / OP-1 Field drum kits from sounds across the planet.';
-  export let description: string = 'Search Freesound and Xeno-canto, arrange 24 slots, trim each one, then export a ready-to-load .aif for your OP-1. Free to try, no account needed.';
+  export let description: string = 'Search Freesound and Xeno-canto, arrange 24 slots, trim each one, then export a ready-to-load .aif for your OP-1. Free, with no account needed.';
   export let primaryLabel: string = 'Build a Kit';
-  export let secondaryLabel: string = 'Get a Pro key →';
-  export let secondaryHref: string = ETSY_LISTING_URL;
   export let docsHref: string = '/docs/getting-started';
   export let showMidiNote: boolean = false;
 
   const dispatch = createEventDispatcher();
 
-  $: secondaryExternal = /^https?:/i.test(secondaryHref);
 
   let isChromium = false;
   let visible = false;
@@ -38,14 +34,6 @@
       <button class="cta-primary" on:click={() => dispatch('start')}>
         {primaryLabel}
       </button>
-      <a
-        class="cta-secondary"
-        href={secondaryHref}
-        target={secondaryExternal ? '_blank' : undefined}
-        rel={secondaryExternal ? 'noopener noreferrer' : undefined}
-      >
-        {secondaryLabel}
-      </a>
     </div>
 
     <a class="cta-tertiary" href={docsHref}>Getting Started →</a>
@@ -114,7 +102,7 @@
     justify-content: center;
     flex-wrap: wrap;
   }
-  .cta-primary, .cta-secondary {
+  .cta-primary {
     padding: 0.875rem 2.5rem;
     font-size: 1rem;
     font-family: var(--font-body);
@@ -136,18 +124,7 @@
     background: var(--accent-light);
     box-shadow: 0 8px 24px rgba(26, 107, 90, 0.2);
   }
-  .cta-secondary {
-    background: transparent;
-    color: var(--accent);
-    border: 1.5px solid var(--accent);
-  }
-  .cta-secondary:hover {
-    transform: translateY(-1px);
-    background: var(--accent);
-    color: #fff;
-    box-shadow: 0 8px 24px rgba(26, 107, 90, 0.2);
-  }
-  .cta-primary:active, .cta-secondary:active { transform: translateY(0); }
+  .cta-primary:active { transform: translateY(0); }
   .cta-tertiary {
     display: inline-block;
     margin-top: 1.25rem;
@@ -169,7 +146,7 @@
     .hero { padding: 1.5rem 1rem; }
     .tagline { font-size: 1.1rem; margin-bottom: 1.25rem; }
     .description { font-size: 0.92rem; margin-bottom: 2rem; }
-    .cta-primary, .cta-secondary {
+    .cta-primary {
       padding: 0.85rem 1.5rem;
       font-size: 0.95rem;
       min-height: 44px;

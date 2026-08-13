@@ -2,8 +2,7 @@
   import { page } from '$app/stores';
   import { onMount } from 'svelte';
   import { browser } from '$app/environment';
-  import UnlockDialog from '$lib/components/UnlockDialog.svelte';
-  import { isUnlocked, openUnlock } from '$lib/stores/license';
+  import { SUPPORT_URL } from '$lib/support';
 
   onMount(async () => {
     if (!browser) return;
@@ -26,16 +25,17 @@
     <a href="/docs/getting-started" class="nav-link" class:active={$page.url.pathname.startsWith('/docs')}>Docs</a>
   </nav>
 
-  {#if $isUnlocked}
-    <span class="pro-chip unlocked" title="Earthwire Pro is active in this browser">Pro ✓</span>
-  {:else}
-    <button class="pro-chip" on:click={() => openUnlock('manual')}>Unlock Pro</button>
+  {#if SUPPORT_URL}
+    <a
+      class="pro-chip"
+      href={SUPPORT_URL}
+      target="_blank"
+      rel="noopener noreferrer"
+    >buy me a coffee</a>
   {/if}
 </div>
 
 <div class="layout-content"><slot /></div>
-
-<UnlockDialog />
 
 <footer class="site-footer">
   <a href="https://idw3d.com" target="_blank" rel="noopener noreferrer">idw3d.com</a>
@@ -97,13 +97,9 @@
     background: none;
     cursor: pointer;
     white-space: nowrap;
+    text-decoration: none;
   }
   .pro-chip:hover { background: var(--accent); color: #fff; }
-  .pro-chip.unlocked {
-    background: var(--accent-bg);
-    cursor: default;
-  }
-  .pro-chip.unlocked:hover { background: var(--accent-bg); color: var(--accent); }
 
   .site-footer {
     display: flex;
