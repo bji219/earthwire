@@ -403,10 +403,15 @@
   </div>
 
   {#if hasExported && SUPPORT_URL}
-    <p class="free-note">
-      enjoying Earthwire?
-      <a href={SUPPORT_URL} target="_blank" rel="noopener noreferrer">buy me a coffee →</a>
-    </p>
+    <a
+      class="coffee-note"
+      href={SUPPORT_URL}
+      target="_blank"
+      rel="noopener noreferrer"
+    >
+      <span class="coffee-icon" aria-hidden="true">☕</span>
+      <span>enjoying Earthwire? <strong>buy me a coffee →</strong></span>
+    </a>
   {/if}
   <input
     type="file"
@@ -519,12 +524,24 @@
     font-size: 0.7rem; color: #c0392b; padding: 0.3rem 1rem;
   }
 
-  .free-note {
-    font-size: 0.62rem; color: var(--text-muted); text-align: right;
-    padding: 0 1rem 0.35rem; margin: 0; flex-shrink: 0;
+  /* Reads as its own element rather than fine print, but stays calm enough to
+     ignore. Only ever shown after an export has completed. */
+  .coffee-note {
+    display: flex; align-items: center; gap: 0.45rem;
+    align-self: flex-end; flex-shrink: 0;
+    margin: 0 1rem 0.55rem;
+    padding: 0.4rem 0.7rem;
+    border: 1px solid var(--accent);
+    border-radius: 999px;
+    background: var(--accent-bg);
+    color: var(--accent);
+    font-size: 0.72rem;
+    font-family: var(--font-body);
+    text-decoration: none;
+    transition: background 150ms, color 150ms;
   }
-  .free-note a { color: var(--accent); text-decoration: none; }
-  .free-note a:hover { text-decoration: underline; }
+  .coffee-note:hover { background: var(--accent); color: #fff; }
+  .coffee-icon { font-size: 0.85rem; line-height: 1; }
 
   .bulk-bar {
     display: flex; align-items: center; gap: 0.6rem;
