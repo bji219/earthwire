@@ -52,9 +52,9 @@
   $: gainValue = slot?.gainDb ?? 0;
   $: gainLabel = signed(gainValue);
   $: isModified = pitchValue !== 0 || gainValue !== 0;
-  // Always both values, including at their defaults. Showing them conditionally
-  // resized the button and shifted the whole row as you edited.
-  $: tuneSummary = `${pitchLabel}st ${gainLabel}dB`;
+  // Names itself when untouched, shows its values once set. The fixed min-width
+  // on .tune-text is what stops the row reflowing as the label changes.
+  $: tuneSummary = isModified ? `${pitchLabel}st ${gainLabel}dB` : 'tune';
 
   let showTune = false;
   // Collapse when the sample goes away, so the strip can't outlive its slot.
@@ -324,7 +324,7 @@
   }
   .tune-btn:hover { border-color: var(--border, #DDD8CF); color: var(--text-primary); }
   /* Fixed width sized for the widest possible pair (-24st -24dB). Mono keeps ch
-     honest, so the row never reflows as values change. */
+     honest, so the row never reflows as the label changes. */
   .tune-text {
     font-family: var(--font-mono, monospace);
     min-width: 12ch; text-align: right;

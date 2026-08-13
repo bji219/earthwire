@@ -46,6 +46,27 @@
   </section>
 
   <section>
+    <h2>Importing an Existing Kit</h2>
+    <p>
+      <strong>import .aif</strong> at the bottom of the kit panel loads a drum kit you already have,
+      whether you built it here, made it elsewhere, or pulled it off your device. Earthwire reads the
+      OP-1 metadata, splits the audio back into its 24 slots, and drops them into the editor so you
+      can retrim, reorder, repitch or swap individual sounds.
+    </p>
+    <p class="note">
+      A few things worth knowing. Importing <strong>replaces</strong> your current kit, so you will be
+      asked to confirm if there is anything in it. The device mode and kit name come from the file.
+      Slots arrive already trimmed to the regions the kit defined, and playback modes are preserved.
+      Pitch and gain start at zero, because an imported kit already has both baked into its audio and
+      there is no reliable way to recover the original values.
+    </p>
+    <p class="note">
+      The file has to be a real OP-1 drum kit. A plain <code>.aif</code> with no OP-1 metadata is
+      rejected with a message saying so, rather than importing as one long slot.
+    </p>
+  </section>
+
+  <section>
     <h2>Pitch and Gain</h2>
     <p>
       Every slot has a <strong>tune</strong> button, sitting just after the playback mode icon. Click
@@ -102,9 +123,8 @@
     </p>
     {#if SUPPORT_URL}
       <p>
-        If it saved you some time and you feel like saying thanks, you can
-        <a href={SUPPORT_URL} target="_blank" rel="noopener">buy me a coffee</a>.
-        Entirely optional, and nothing changes either way.
+        If you like what you see, you can
+        <a href={SUPPORT_URL} target="_blank" rel="noopener">buy me a coffee</a>!
       </p>
     {/if}
   </section>
