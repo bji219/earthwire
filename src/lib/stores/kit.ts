@@ -267,6 +267,40 @@ function createKitStore() {
       });
     },
 
+    setAllPlayMode(mode: SlotPlayMode) {
+      applyUpdate(kit => ({
+        ...kit,
+        slots: kit.slots.map(s => s ? { ...s, playMode: mode } : s),
+      }));
+    },
+
+    adjustAllPitch(delta: number) {
+      applyUpdate(kit => ({
+        ...kit,
+        slots: kit.slots.map(s => s
+          ? { ...s, pitchSemitones: clampPitch((s.pitchSemitones ?? PITCH_DEFAULT) + delta) }
+          : s),
+      }));
+    },
+
+    adjustAllGain(delta: number) {
+      applyUpdate(kit => ({
+        ...kit,
+        slots: kit.slots.map(s => s
+          ? { ...s, gainDb: clampGainDb((s.gainDb ?? GAIN_DEFAULT_DB) + delta) }
+          : s),
+      }));
+    },
+
+    resetAllTune() {
+      applyUpdate(kit => ({
+        ...kit,
+        slots: kit.slots.map(s => s
+          ? { ...s, pitchSemitones: PITCH_DEFAULT, gainDb: GAIN_DEFAULT_DB }
+          : s),
+      }));
+    },
+
     clearSlot(index: number) {
       pcm.delete(index);
       if (browser) deletePcm(index).catch(warnPersist);

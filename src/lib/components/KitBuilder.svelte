@@ -6,6 +6,7 @@
   import SlotRow from './SlotRow.svelte';
   import {
     DEVICE_LIMITS, DEVICE_CHANNELS, SLOT_COLORS, PLAY_MODE_DEFAULT,
+    PLAY_MODE_CYCLE, PLAY_MODE_ICON, PLAY_MODE_LABEL,
     type DeviceMode, type SlotMeta,
   } from '$lib/kit/types';
   import { buildOp1Metadata } from '$lib/kit/op1-metadata';
@@ -67,6 +68,11 @@
     (s, sl) => s + (sl ? pitchedDuration(sl) : 0), 0
   );
   $: overBudget = usedSeconds > maxSeconds;
+
+  let editAll = false;
+  $: filledCount = $kit.slots.filter(Boolean).length;
+  // Auto-collapse when nothing's left to edit, so the panel can't outlive the kit.
+  $: if (filledCount === 0 && editAll) editAll = false;
 
   $: exportTitle = overBudget
     ? `Over ${maxSeconds}s — last sample(s) will be clipped to fit`
@@ -348,6 +354,64 @@
   <!-- Segment bar -->
   <SegmentBar slots={$kit.slots} deviceMode={$kit.deviceMode} on:preview={e => previewSlot(e.detail.index)} />
 
+  {#if filledCount > 0}
+    <div class="edit-all-bar" class:open={editAll}>
+      <button
+        class="edit-all-toggle"
+        class:on={editAll}
+        aria-pressed={editAll}
+        on:click={() => editAll = !editAll}
+      >
+        <span class="edit-all-check">{editAll ? '☑' : '☐'}</span>
+        edit all
+        <span class="edit-all-count">({filledCount} slot{filledCount === 1 ? '' : 's'})</span>
+      </button>
+    </div>
+
+    {#if editAll}
+      <div class="bulk-edit-panel">
+        <div class="bulk-edit-row">
+          <span class="bulk-edit-label">play mode</span>
+          <div class="mode-picker">
+            {#each PLAY_MODE_CYCLE as mode}
+              <button
+                class="mode-pick"
+                on:click={() => kit.setAllPlayMode(mode)}
+                title="Set every filled slot to {PLAY_MODE_LABEL[mode]}"
+                aria-label="Set play mode to {PLAY_MODE_LABEL[mode]}"
+              >{PLAY_MODE_ICON[mode]}</button>
+            {/each}
+          </div>
+        </div>
+
+        <div class="bulk-edit-row">
+          <span class="bulk-edit-label">tune</span>
+          <span class="bulk-sub">pitch</span>
+          <span class="tune-stepper">
+            <button class="tune-step" on:click={() => kit.adjustAllPitch(-1)} aria-label="Nudge all slots pitch down a semitone">−</button>
+            <span class="tune-val">±</span>
+            <button class="tune-step" on:click={() => kit.adjustAllPitch(1)} aria-label="Nudge all slots pitch up a semitone">+</button>
+          </span>
+          <span class="tune-unit">semitones</span>
+
+          <span class="bulk-sub bulk-sub-2">gain</span>
+          <span class="tune-stepper">
+            <button class="tune-step" on:click={() => kit.adjustAllGain(-1)} aria-label="Nudge all slots gain down one decibel">−</button>
+            <span class="tune-val">±</span>
+            <button class="tune-step" on:click={() => kit.adjustAllGain(1)} aria-label="Nudge all slots gain up one decibel">+</button>
+          </span>
+          <span class="tune-unit">dB</span>
+
+          <button
+            class="tune-reset"
+            on:click={() => kit.resetAllTune()}
+            title="Zero pitch and gain on every filled slot"
+          >reset</button>
+        </div>
+      </div>
+    {/if}
+  {/if}
+
   <!-- 24 slot rows -->
   {#if selectedSlots.size > 1}
     <div class="bulk-bar">
@@ -382,7 +446,7 @@
   <!-- Footer -->
   <div class="kit-footer">
     <span class="slot-count">
-      {$kit.slots.filter(Boolean).length} / 24 slots
+      {filledCount} / 24 slots
     </span>
     <button
       class="import-btn"
@@ -439,7 +503,7 @@
     <p class="import-notice">{importNotice}</p>
   {/if}
 
-  <p class="hint">click plays · tune sets pitch and gain · arrow keys navigate · shift-click range-selects · backspace/delete clears · drag to reorder</p>
+  <p class="hint">click plays · tune sets pitch and gain · edit-all applies to every filled slot · arrow keys navigate · shift-click range-selects · backspace/delete clears · drag to reorder</p>
 </div>
 
 <style>
@@ -565,6 +629,80 @@
     border-top: 1px solid var(--border-light, #eee); flex-shrink: 0;
   }
 
+  .edit-all-bar {
+    display: flex; align-items: center;
+    padding: 0.3rem 1rem;
+    border-bottom: 1px solid var(--border-light, #eee);
+    flex-shrink: 0;
+  }
+  .edit-all-bar.open { border-bottom-color: var(--accent); background: var(--accent-bg); }
+  .edit-all-toggle {
+    display: inline-flex; align-items: center; gap: 0.35rem;
+    font-family: var(--font-body); font-size: 0.68rem;
+    color: var(--text-muted);
+    background: none; border: 1px solid transparent; border-radius: 3px;
+    padding: 0.2rem 0.45rem; cursor: pointer;
+  }
+  .edit-all-toggle:hover { color: var(--text-primary); border-color: var(--border, #DDD8CF); }
+  .edit-all-toggle.on { color: var(--accent); font-weight: 600; border-color: var(--accent); }
+  .edit-all-check { font-size: 0.8rem; line-height: 1; }
+  .edit-all-count { color: var(--text-muted); font-weight: 400; }
+  .edit-all-toggle.on .edit-all-count { color: var(--accent); }
+
+  .bulk-edit-panel {
+    display: flex; flex-direction: column; gap: 0.35rem;
+    padding: 0.5rem 1rem 0.6rem 1rem;
+    background: var(--accent-bg);
+    border-bottom: 1px solid var(--accent);
+    flex-shrink: 0;
+    font-size: 0.62rem; color: var(--text-muted);
+  }
+  .bulk-edit-row {
+    display: flex; align-items: center; gap: 0.35rem; flex-wrap: wrap;
+  }
+  .bulk-edit-label {
+    font-weight: 600; color: var(--accent);
+    text-transform: uppercase; letter-spacing: 0.04em;
+    font-size: 0.58rem; min-width: 4.5rem;
+  }
+  .bulk-sub { font-weight: 600; color: var(--text-secondary, #6B6B6B); }
+  .bulk-sub-2 { margin-left: 0.9rem; }
+  .mode-picker { display: flex; align-items: center; gap: 0.15rem; }
+  .mode-pick {
+    font-size: 0.85rem; line-height: 1;
+    width: 1.7rem; height: 1.5rem;
+    display: inline-flex; align-items: center; justify-content: center;
+    color: var(--text-secondary, #6B6B6B);
+    background: var(--bg-input, #fff);
+    border: 1px solid var(--border, #DDD8CF); border-radius: 3px;
+    cursor: pointer; font-family: var(--font-body); padding: 0;
+  }
+  .mode-pick:hover { color: var(--accent); border-color: var(--accent); }
+
+  .tune-stepper {
+    display: inline-flex; align-items: center; gap: 0.05rem;
+    border: 1px solid var(--border, #DDD8CF); border-radius: 3px;
+    background: var(--bg-input, #fff);
+  }
+  .tune-step {
+    font-size: 0.7rem; color: var(--text-muted); background: none;
+    border: none; cursor: pointer; padding: 0.05rem 0.35rem; line-height: 1;
+    font-family: var(--font-body);
+  }
+  .tune-step:hover { color: var(--text-primary); }
+  .tune-val {
+    font-family: var(--font-mono, monospace); font-size: 0.6rem;
+    min-width: 1.4rem; text-align: center; color: var(--text-muted);
+  }
+  .tune-unit { font-size: 0.58rem; opacity: 0.8; }
+  .tune-reset {
+    margin-left: auto; font-size: 0.58rem; background: none;
+    border: 1px solid var(--border, #DDD8CF); border-radius: 3px;
+    color: var(--text-muted); cursor: pointer; padding: 0.15rem 0.5rem;
+    font-family: var(--font-body);
+  }
+  .tune-reset:hover { color: var(--text-primary); border-color: var(--text-muted); }
+
   @media (max-width: 768px) {
     .kit-builder { height: auto; min-height: 100%; }
     .slot-list { overflow-y: visible; }
@@ -594,6 +732,23 @@
       padding: 0.35rem 0.7rem;
       min-height: 32px;
     }
+    .edit-all-bar { padding: 0.4rem 0.85rem; }
+    .edit-all-toggle {
+      font-size: 0.8rem; padding: 0.45rem 0.6rem;
+      min-height: 40px; border-color: var(--border, #DDD8CF);
+    }
+    .bulk-edit-panel { padding: 0.6rem 0.85rem; font-size: 0.75rem; }
+    .bulk-edit-label { font-size: 0.7rem; min-width: 100%; }
+    .mode-pick {
+      width: 2.4rem; height: 2.4rem; font-size: 1.1rem;
+      min-width: 40px; min-height: 40px;
+    }
+    .tune-step {
+      font-size: 1rem; min-width: 32px; min-height: 36px;
+      display: inline-flex; align-items: center; justify-content: center;
+    }
+    .tune-val { font-size: 0.8rem; min-width: 1.7rem; }
+    .tune-reset { font-size: 0.75rem; padding: 0.35rem 0.6rem; min-height: 36px; }
     .hint { font-size: 0.7rem; padding: 0.55rem 0.85rem; }
   }
 </style>
